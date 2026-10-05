@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use TallStackUi\Components;
 
 return [
@@ -15,7 +17,7 @@ return [
     | For example, prefixing as 'ts-', the `alert` usage will be: '<x-ts-alert />'
     |
     */
-    'prefix' => env('TALLSTACKUI_PREFIX', 'tui'),
+    'prefix' => env('TALLSTACKUI_PREFIX'),
 
     /*
     |--------------------------------------------------------------------------
@@ -109,11 +111,11 @@ return [
             */
             [
                 'shadowless' => false,
-                'bordered' => false,
+                'bordered'   => false,
             ],
         ],
         'accordion.items' => Components\Accordion\Items\Component::class,
-        'alert' => [
+        'alert'           => [
             Components\Alert\Component::class,
             /*
             |----------------------------------------------------------------------
@@ -126,7 +128,7 @@ return [
             */
             [
                 'shadowless' => false,
-                'bordered' => null,
+                'bordered'   => null,
             ],
         ],
         'autocomplete' => [
@@ -145,8 +147,8 @@ return [
                 | Use "spinner" or "spinner.{type}" to render a Spinner instead (Allowed types: ring, throbber, gradient, ping, dots, pulse, typing, bars, wave, shimmer, caret, terminal, thinking).
                 |
                 */
-                'strict' => false,
-                'select' => null,
+                'strict'    => false,
+                'select'    => null,
                 'indicator' => null,
             ],
         ],
@@ -166,11 +168,11 @@ return [
             */
             [
                 'immediate' => false,
-                'square' => false,
-                'color' => 'primary',
-                'icon' => 'chevron-up',
-                'position' => 'bottom-right',
-                'size' => 'md',
+                'square'    => false,
+                'color'     => 'primary',
+                'icon'      => 'chevron-up',
+                'position'  => 'bottom-right',
+                'size'      => 'md',
             ],
         ],
         'avatar' => [
@@ -186,16 +188,16 @@ return [
             |
             */
             [
-                'size' => 'md',
+                'size'       => 'md',
                 'borderless' => false,
-                'gravatar' => [
+                'gravatar'   => [
                     'default' => 'mp',
-                    'rating' => 'g',
+                    'rating'  => 'g',
                 ],
             ],
         ],
         'avatar.group' => Components\Avatar\Group\Component::class,
-        'badge' => [
+        'badge'        => [
             Components\Badge\Component::class,
             /*
             |----------------------------------------------------------------------
@@ -208,10 +210,10 @@ return [
             */
             [
                 'round' => false,
-                'size' => 'xs',
+                'size'  => 'xs',
             ],
         ],
-        'banner' => Components\Banner\Component::class,
+        'banner'      => Components\Banner\Component::class,
         'breadcrumbs' => [
             Components\Breadcrumbs\Component::class,
             /*
@@ -229,7 +231,7 @@ return [
             ],
         ],
         'boolean' => Components\Boolean\Component::class,
-        'button' => [
+        'button'  => [
             Components\Button\Normal\Component::class,
             [
                 /*
@@ -242,14 +244,14 @@ return [
                 | unfocus: blocks the focus on mouse click by default, keeping the keyboard focus.
                 |
                 */
-                'round' => false,
+                'round'   => false,
                 'spinner' => null,
                 'unfocus' => false,
             ],
         ],
         'button.circle' => Components\Button\Circle\Component::class,
-        'button.group' => Components\Button\Group\Component::class,
-        'calendar' => [
+        'button.group'  => Components\Button\Group\Component::class,
+        'calendar'      => [
             Components\Calendar\Component::class,
             /*
             |----------------------------------------------------------------------
@@ -262,8 +264,8 @@ return [
             */
             [
                 'shadowless' => false,
-                'bordered' => false,
-                'start' => 0,
+                'bordered'   => false,
+                'start'      => 0,
             ],
         ],
         'carousel' => [
@@ -278,8 +280,8 @@ return [
             |
             */
             [
-                'thumbnails' => false,
-                'limit' => 6,
+                'thumbnails'        => false,
+                'limit'             => 6,
                 'without-highlight' => false,
             ],
         ],
@@ -296,8 +298,8 @@ return [
             */
             [
                 'shadowless' => false,
-                'bordered' => false,
-                'round' => false,
+                'bordered'   => false,
+                'round'      => false,
             ],
         ],
         'chart' => [
@@ -318,18 +320,18 @@ return [
             |
             */
             [
-                'height' => 240,
-                'grid' => false,
-                'legend' => false,
+                'height'  => 240,
+                'grid'    => false,
+                'legend'  => false,
                 'tooltip' => false,
                 'markers' => false,
-                'fit' => 'thin',
-                'curve' => 'smooth',
-                'round' => 'sm',
+                'fit'     => 'thin',
+                'curve'   => 'smooth',
+                'round'   => 'sm',
                 'corners' => 'all',
             ],
         ],
-        'checkbox' => Components\Form\Checkbox\Component::class,
+        'checkbox'       => Components\Form\Checkbox\Component::class,
         'checkbox.group' => [
             Components\Form\Checkbox\Group\Component::class,
             [
@@ -356,13 +358,13 @@ return [
             |
             */
             [
-                'colors' => [],
-                'picker' => false,
+                'colors'     => [],
+                'picker'     => false,
                 'selectable' => false,
-                'clearable' => false,
+                'clearable'  => false,
             ],
         ],
-        'clipboard' => Components\Clipboard\Component::class,
+        'clipboard'       => Components\Clipboard\Component::class,
         'command-palette' => [
             Components\CommandPalette\Component::class,
             /*
@@ -386,17 +388,17 @@ return [
             */
             [
                 'actionable' => null,
-                'request' => null,
-                'select' => null,
-                'z-index' => 'z-50',
-                'blur' => false,
-                'overflow' => false,
-                'shortcut' => 'ctrl.k',
-                'recycle' => true,
-                'elements' => true,
-                'scrollbar' => true,
-                'centered' => false,
-                'overlay' => true,
+                'request'    => null,
+                'select'     => null,
+                'z-index'    => 'z-50',
+                'blur'       => false,
+                'overflow'   => false,
+                'shortcut'   => 'ctrl.k',
+                'recycle'    => true,
+                'elements'   => true,
+                'scrollbar'  => true,
+                'centered'   => false,
+                'overlay'    => true,
             ],
         ],
         'currency' => [
@@ -415,7 +417,7 @@ return [
             |
             */
             [
-                'mutate' => false,
+                'mutate'  => false,
                 'decimal' => false,
             ],
         ],
@@ -445,18 +447,18 @@ return [
             |
             */
             [
-                'z-index' => 'z-50',
-                'overflow' => false,
-                'blur' => false,
+                'z-index'    => 'z-50',
+                'overflow'   => false,
+                'blur'       => false,
                 'persistent' => false,
             ],
         ],
-        'dial' => Components\Dial\Main\Component::class,
-        'dial.items' => Components\Dial\Items\Component::class,
-        'dropdown' => Components\Dropdown\Main\Component::class,
-        'dropdown.items' => Components\Dropdown\Items\Component::class,
+        'dial'             => Components\Dial\Main\Component::class,
+        'dial.items'       => Components\Dial\Items\Component::class,
+        'dropdown'         => Components\Dropdown\Main\Component::class,
+        'dropdown.items'   => Components\Dropdown\Items\Component::class,
         'dropdown.submenu' => Components\Dropdown\Submenu\Component::class,
-        'editor' => [
+        'editor'           => [
             Components\Editor\Component::class,
             /*
             |----------------------------------------------------------------------
@@ -474,10 +476,10 @@ return [
             |
             */
             [
-                'markdown' => false,
-                'output_classes' => false,
+                'markdown'              => false,
+                'output_classes'        => false,
                 'output_classes_prefix' => null,
-                'toolbar' => [
+                'toolbar'               => [
                     'style', 'blockquote',
                     'bold', 'italic', 'underline', 'strikethrough',
                     'ordered-list', 'unordered-list', 'indent', 'outdent',
@@ -488,11 +490,11 @@ return [
                     'fullscreen',
                 ],
                 'toolbar_tooltip' => true,
-                'counters' => true,
-                'min_height' => '12rem',
-                'max_height' => '40rem',
-                'upload' => [
-                    'mimes' => ['image/png', 'image/jpeg', 'image/gif', 'image/webp'],
+                'counters'        => true,
+                'min_height'      => '12rem',
+                'max_height'      => '40rem',
+                'upload'          => [
+                    'mimes'    => ['image/png', 'image/jpeg', 'image/gif', 'image/webp'],
                     'max_size' => 5120,
                 ],
                 'sanitization' => [
@@ -504,25 +506,25 @@ return [
                         'a', 'img', 'span', 'div',
                     ],
                     'allowed_attributes' => [
-                        'a' => ['href', 'target', 'rel'],
-                        'img' => ['src', 'alt', 'width', 'height'],
+                        'a'    => ['href', 'target', 'rel'],
+                        'img'  => ['src', 'alt', 'width', 'height'],
                         'span' => ['style'],
-                        'div' => ['style'],
-                        'p' => ['style'],
-                        'h1' => ['style'],
-                        'h2' => ['style'],
-                        'h3' => ['style'],
-                        'h4' => ['style'],
-                        'h5' => ['style'],
-                        'li' => ['style'],
+                        'div'  => ['style'],
+                        'p'    => ['style'],
+                        'h1'   => ['style'],
+                        'h2'   => ['style'],
+                        'h3'   => ['style'],
+                        'h4'   => ['style'],
+                        'h5'   => ['style'],
+                        'li'   => ['style'],
                     ],
                     'allowed_styles' => ['font-size', 'text-align', 'margin-left'],
                 ],
             ],
         ],
         'environment' => Components\Environment\Component::class,
-        'error' => Components\Form\Error\Component::class,
-        'errors' => [
+        'error'       => Components\Form\Error\Component::class,
+        'errors'      => [
             Components\Errors\Component::class,
             /*
             |----------------------------------------------------------------------
@@ -535,14 +537,14 @@ return [
             |
             */
             [
-                'shadowless' => false,
-                'bordered' => false,
+                'shadowless'  => false,
+                'bordered'    => false,
                 'paddingless' => false,
-                'numeric' => false,
+                'numeric'     => false,
             ],
         ],
         'floating' => Components\Floating\Component::class,
-        'gallery' => [
+        'gallery'  => [
             Components\Gallery\Component::class,
             /*
             |----------------------------------------------------------------------
@@ -555,8 +557,8 @@ return [
             */
             [
                 'columns' => 3,
-                'ratio' => null,
-                'limit' => 7,
+                'ratio'   => null,
+                'limit'   => 7,
             ],
         ],
         'hint' => Components\Form\Hint\Component::class,
@@ -611,61 +613,61 @@ return [
                     |
                     */
                     'guide' => [
-                        'arrow-path' => null,
-                        'arrow-trending-up' => null,
-                        'arrow-trending-down' => null,
-                        'arrow-up-tray' => null,
-                        'arrow-uturn-left' => null,
-                        'arrow-uturn-right' => null,
-                        'arrows-pointing-in' => null,
-                        'arrows-pointing-out' => null,
-                        'backspace' => null,
-                        'bars-3-bottom-left' => null,
-                        'bars-4' => null,
-                        'calendar' => null,
-                        'check' => null,
-                        'check-circle' => null,
-                        'chevron-double-left' => null,
+                        'arrow-path'           => null,
+                        'arrow-trending-up'    => null,
+                        'arrow-trending-down'  => null,
+                        'arrow-up-tray'        => null,
+                        'arrow-uturn-left'     => null,
+                        'arrow-uturn-right'    => null,
+                        'arrows-pointing-in'   => null,
+                        'arrows-pointing-out'  => null,
+                        'backspace'            => null,
+                        'bars-3-bottom-left'   => null,
+                        'bars-4'               => null,
+                        'calendar'             => null,
+                        'check'                => null,
+                        'check-circle'         => null,
+                        'chevron-double-left'  => null,
                         'chevron-double-right' => null,
-                        'chevron-down' => null,
-                        'chevron-left' => null,
-                        'chevron-right' => null,
-                        'chevron-up' => null,
-                        'chevron-up-down' => null,
-                        'clipboard' => null,
-                        'clipboard-document' => null,
-                        'cloud-arrow-up' => null,
-                        'clock' => null,
-                        'code-bracket' => null,
-                        'code-bracket-square' => null,
-                        'document-check' => null,
-                        'document-text' => null,
-                        'exclamation-circle' => null,
-                        'eye' => null,
-                        'eye-slash' => null,
-                        'information-circle' => null,
-                        'link' => null,
-                        'list-bullet' => null,
-                        'magnifying-glass' => null,
-                        'minus' => null,
-                        'moon' => null,
-                        'numbered-list' => null,
-                        'photo' => null,
-                        'plus' => null,
+                        'chevron-down'         => null,
+                        'chevron-left'         => null,
+                        'chevron-right'        => null,
+                        'chevron-up'           => null,
+                        'chevron-up-down'      => null,
+                        'clipboard'            => null,
+                        'clipboard-document'   => null,
+                        'cloud-arrow-up'       => null,
+                        'clock'                => null,
+                        'code-bracket'         => null,
+                        'code-bracket-square'  => null,
+                        'document-check'       => null,
+                        'document-text'        => null,
+                        'exclamation-circle'   => null,
+                        'eye'                  => null,
+                        'eye-slash'            => null,
+                        'information-circle'   => null,
+                        'link'                 => null,
+                        'list-bullet'          => null,
+                        'magnifying-glass'     => null,
+                        'minus'                => null,
+                        'moon'                 => null,
+                        'numbered-list'        => null,
+                        'photo'                => null,
+                        'plus'                 => null,
                         'question-mark-circle' => null,
-                        'swatch' => null,
-                        'sun' => null,
-                        'trash' => null,
-                        'x-circle' => null,
-                        'x-mark' => null,
+                        'swatch'               => null,
+                        'sun'                  => null,
+                        'trash'                => null,
+                        'x-circle'             => null,
+                        'x-mark'               => null,
                     ],
                 ],
             ],
         ],
-        'input' => Components\Form\Input\Component::class,
+        'input'        => Components\Form\Input\Component::class,
         'input.select' => Components\Form\InputSelect\Component::class,
-        'label' => Components\Form\Label\Component::class,
-        'layout' => [
+        'label'        => Components\Form\Label\Component::class,
+        'layout'       => [
             Components\Layout\Main\Component::class,
             /*
             |----------------------------------------------------------------------
@@ -693,7 +695,7 @@ return [
             |
             */
             [
-                'size' => 'md',
+                'size'          => 'md',
                 'collapse-icon' => null,
             ],
         ],
@@ -711,13 +713,13 @@ return [
             |
             */
             [
-                'navigate' => false,
+                'navigate'       => false,
                 'navigate-hover' => false,
             ],
         ],
-        'list' => Components\List\Main\Component::class,
+        'list'       => Components\List\Main\Component::class,
         'list.items' => Components\List\Items\Component::class,
-        'loading' => [
+        'loading'    => [
             Components\Loading\Component::class,
             [
                 /*
@@ -734,10 +736,10 @@ return [
                 | (Allowed types: ring, throbber, gradient, ping, dots, pulse, typing, bars, wave, shimmer, caret, terminal, thinking).
                 |
                 */
-                'z-index' => 'z-50',
-                'overflow' => false,
-                'blur' => false,
-                'opacity' => true,
+                'z-index'   => 'z-50',
+                'overflow'  => false,
+                'blur'      => false,
+                'opacity'   => true,
                 'indicator' => null,
             ],
         ],
@@ -757,7 +759,7 @@ return [
             ],
         ],
         'key-value' => Components\KeyValue\Component::class,
-        'modal' => [
+        'modal'     => [
             Components\Modal\Component::class,
             [
                 /*
@@ -777,15 +779,15 @@ return [
                 | handle: displays a grabber on mobile allowing the modal to be dragged down to close.
                 |
                 */
-                'z-index' => 'z-50',
-                'overflow' => false,
-                'blur' => false,
+                'z-index'    => 'z-50',
+                'overflow'   => false,
+                'blur'       => false,
                 'persistent' => false,
-                'size' => '2xl',
-                'center' => false,
+                'size'       => '2xl',
+                'center'     => false,
                 'scrollable' => false,
-                'scrollbar' => 'thin',
-                'handle' => false,
+                'scrollbar'  => 'thin',
+                'handle'     => false,
             ],
         ],
         'number' => [
@@ -802,9 +804,9 @@ return [
             */
             [
                 'centralized' => false,
-                'selectable' => false,
-                'delay' => 2,
-                'chevron' => false,
+                'selectable'  => false,
+                'delay'       => 2,
+                'chevron'     => false,
             ],
         ],
         'password' => [
@@ -818,17 +820,17 @@ return [
             */
             [
                 'rules' => [
-                    'min' => '8',
-                    'mixed' => true,
+                    'min'     => '8',
+                    'mixed'   => true,
                     'numbers' => true,
                     'symbols' => '!@#$%^&*()_+-=',
                 ],
             ],
         ],
-        'pin' => Components\Form\Pin\Component::class,
-        'progress' => Components\Progress\Bar\Component::class,
+        'pin'             => Components\Form\Pin\Component::class,
+        'progress'        => Components\Progress\Bar\Component::class,
         'progress.circle' => Components\Progress\Circle\Component::class,
-        'qr-code' => [
+        'qr-code'         => [
             Components\QrCode\Component::class,
             /*
             |----------------------------------------------------------------------
@@ -839,11 +841,11 @@ return [
             |
             */
             [
-                'size' => 'md',
+                'size'   => 'md',
                 'pixels' => 1024,
             ],
         ],
-        'radio' => Components\Form\Radio\Component::class,
+        'radio'       => Components\Form\Radio\Component::class,
         'radio.group' => [
             Components\Form\Radio\Group\Component::class,
             [
@@ -857,8 +859,8 @@ return [
                 'select' => null,
             ],
         ],
-        'range' => Components\Form\Range\Component::class,
-        'rating' => Components\Rating\Component::class,
+        'range'    => Components\Form\Range\Component::class,
+        'rating'   => Components\Rating\Component::class,
         'side-bar' => [
             Components\Layout\SideBar\Main\Component::class,
             /*
@@ -873,17 +875,17 @@ return [
             | navigate-hover: adds wire:navigate.hover to every item by default.
             */
             [
-                'smart' => false,
-                'collapsible' => false,
-                'thin-scroll' => false,
-                'thick-scroll' => false,
-                'navigate' => false,
+                'smart'          => false,
+                'collapsible'    => false,
+                'thin-scroll'    => false,
+                'thick-scroll'   => false,
+                'navigate'       => false,
                 'navigate-hover' => false,
             ],
         ],
-        'side-bar.item' => Components\Layout\SideBar\Item\Component::class,
+        'side-bar.item'      => Components\Layout\SideBar\Item\Component::class,
         'side-bar.separator' => Components\Layout\SideBar\Separator\Component::class,
-        'select.native' => [
+        'select.native'      => [
             Components\Form\Select\Native\Component::class,
             [
                 /*
@@ -911,13 +913,13 @@ return [
                 |
                 */
                 'unfiltered' => false,
-                'recycle' => false,
-                'select' => null,
-                'indicator' => null,
+                'recycle'    => false,
+                'select'     => null,
+                'indicator'  => null,
             ],
         ],
         'signature' => Components\Signature\Component::class,
-        'slide' => [
+        'slide'     => [
             Components\Slide\Component::class,
             [
                 /*
@@ -933,12 +935,12 @@ return [
                 | position: controls the default slide position (Allowed: right, left, top, bottom).
                 |
                 */
-                'z-index' => 'z-50',
-                'overflow' => false,
-                'blur' => false,
+                'z-index'    => 'z-50',
+                'overflow'   => false,
+                'blur'       => false,
                 'persistent' => false,
-                'size' => 'lg',
-                'position' => 'right',
+                'size'       => 'lg',
+                'position'   => 'right',
             ],
         ],
         'spinner' => [
@@ -970,7 +972,7 @@ return [
             */
             [
                 'shadowless' => false,
-                'bordered' => false,
+                'bordered'   => false,
             ],
         ],
         'step' => [
@@ -988,7 +990,7 @@ return [
             ],
         ],
         'step.items' => Components\Step\Items\Component::class,
-        'swap' => [
+        'swap'       => [
             Components\Swap\Component::class,
             [
                 /*
@@ -1002,10 +1004,10 @@ return [
                 | select: the default field mapping of the options (e.g., 'label:name|value:id').
                 |
                 */
-                'preview' => false,
+                'preview'  => false,
                 'vertical' => false,
-                'loop' => true,
-                'select' => null,
+                'loop'     => true,
+                'select'   => null,
             ],
         ],
         'tab' => [
@@ -1020,10 +1022,10 @@ return [
             */
             [
                 'shadowless' => false,
-                'bordered' => false,
+                'bordered'   => false,
             ],
         ],
-        'tag' => Components\Form\Tag\Component::class,
+        'tag'   => Components\Form\Tag\Component::class,
         'table' => [
             Components\Table\Component::class,
             /*
@@ -1042,22 +1044,22 @@ return [
             |
             */
             [
-                'paginator' => 'simple',
-                'paginate' => false,
+                'paginator'         => 'simple',
+                'paginate'          => false,
                 'simple-pagination' => false,
-                'filter' => false,
-                'quantity' => [10, 25, 50, 100],
-                'compact' => false,
-                'indicator' => null,
+                'filter'            => false,
+                'quantity'          => [10, 25, 50, 100],
+                'compact'           => false,
+                'indicator'         => null,
             ],
         ],
-        'tab.items' => Components\Tab\Items\Component::class,
-        'textarea' => Components\Form\Textarea\Component::class,
-        'theme-switch' => Components\ThemeSwitch\Component::class,
-        'time' => Components\Form\Time\Component::class,
-        'timeline' => Components\Timeline\Main\Component::class,
+        'tab.items'      => Components\Tab\Items\Component::class,
+        'textarea'       => Components\Form\Textarea\Component::class,
+        'theme-switch'   => Components\ThemeSwitch\Component::class,
+        'time'           => Components\Form\Time\Component::class,
+        'timeline'       => Components\Timeline\Main\Component::class,
         'timeline.items' => Components\Timeline\Items\Component::class,
-        'toast' => [
+        'toast'          => [
             Components\Toast\Component::class,
             [
                 /*
@@ -1076,16 +1078,16 @@ return [
                 | breakpoint, whatever the position says. Off, they sit at the bottom.
                 |
                 */
-                'z-index' => 'z-50',
-                'progress' => true,
-                'expandable' => false,
-                'position' => 'top-right',
-                'timeout' => 3,
-                'stacked' => false,
+                'z-index'       => 'z-50',
+                'progress'      => true,
+                'expandable'    => false,
+                'position'      => 'top-right',
+                'timeout'       => 3,
+                'stacked'       => false,
                 'top-on-mobile' => false,
             ],
         ],
-        'toggle' => Components\Form\Toggle\Component::class,
+        'toggle'  => Components\Form\Toggle\Component::class,
         'tooltip' => [
             Components\Tooltip\Component::class,
             /*
@@ -1100,13 +1102,13 @@ return [
             |
             */
             [
-                'delay' => null,
-                'color' => null,
-                'size' => null,
+                'delay'  => null,
+                'color'  => null,
+                'size'   => null,
                 'invert' => false,
             ],
         ],
-        'upload' => Components\Form\Upload\Component::class,
+        'upload'       => Components\Form\Upload\Component::class,
         'upload.async' => [
             Components\Form\Upload\Async\Component::class,
             [
@@ -1127,16 +1129,16 @@ return [
                 | keep: controls the seconds an unfinished upload is kept (discarded by tallstackui:async-upload:clear).
                 |
                 */
-                'chunk_size' => 2 * 1024 * 1024,
-                'concurrency' => 3,
-                'retries' => 3,
-                'retry_delay' => 1000,
-                'max_size' => null,
-                'accept' => null,
-                'tmp_disk' => 'local',
+                'chunk_size'    => 2 * 1024 * 1024,
+                'concurrency'   => 3,
+                'retries'       => 3,
+                'retry_delay'   => 1000,
+                'max_size'      => null,
+                'accept'        => null,
+                'tmp_disk'      => 'local',
                 'tmp_directory' => 'async-uploads',
-                'disk' => 'local',
-                'keep' => 60 * 60 * 6,
+                'disk'          => 'local',
+                'keep'          => 60 * 60 * 6,
             ],
         ],
         'reaction' => [
@@ -1152,9 +1154,9 @@ return [
             |
             */
             [
-                'delay' => null,
+                'delay'   => null,
                 'balloon' => null,
-                'hover' => false,
+                'hover'   => false,
             ],
         ],
         'wrapper.input' => Components\Wrapper\Input\Component::class,
