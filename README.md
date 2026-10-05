@@ -93,3 +93,7 @@
 2. **Penalty Notifications:** Automated alerts sent to borrowers as soon as a penalty is imposed.
 3. **Borrowing Suspension:** Automatic borrowing lock applied to accounts with unsettled penalties or unresolved overdue equipment.
 4. **Damage / Loss Assessment:** Dedicated workflow to assess repair/replacement fees for damaged or destroyed equipment.
+
+## Colors
+
+- theme #0d6e77
