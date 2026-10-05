@@ -31,4 +31,5 @@
     </x-side-bar.separator>
     <x-side-bar.item text="Users" icon="users" :route="route('users.index')" />
     <x-side-bar.item text="Roles and Permissions" icon="scale" />
+    <x-side-bar.item text="Starter Page" icon="scale" />
 </x-side-bar>
