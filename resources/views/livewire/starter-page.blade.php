@@ -1,0 +1,3 @@
+<div>
+    Starter Page
+</div>
