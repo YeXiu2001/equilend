@@ -2,7 +2,8 @@
     <x-card shadowless bordered header="Welcome to the TallStackUI Starter Kit">
         <div class="space-y-2">
             <p>
-                👋🏻 This is the TallStackUI starter kit for Laravel 13. With this TallStackUI starter kit you will be able to enjoy a ready-to-use application to initialize your next Laravel 13 project with TallStackUI.
+                👋🏻 This is the TallStackUI starter kit for Laravel 13. With this TallStackUI starter kit you will be
+                able to enjoy a ready-to-use application to initialize your next Laravel 13 project with TallStackUI.
             </p>
             <div class="mt-4 space-y-2">
                 <i>
@@ -22,10 +23,13 @@
                     <li><a href="https://laravel.com/docs/pint" target="_blank">Pint</a></li>
                 </ul>
             </div>
+
+            <x-button color="primary">TallStackUI</x-button>
         </div>
         <x-slot:footer>
             <span class="text-xs">
-                ⚠️ <x-link href="https://tallstackui.com/docs/starter-kit" bold blank sm>Make sure to read the docs about the starter kit!</x-link>
+                ⚠️ <x-link href="https://tallstackui.com/docs/starter-kit" bold blank sm>Make sure to read the docs
+                    about the starter kit!</x-link>
             </span>
         </x-slot:footer>
     </x-card>
