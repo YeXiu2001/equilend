@@ -2,6 +2,7 @@
 @import '../../vendor/tallstackui/tallstackui/css/v4.css';
 
 @source '../views';
+@source '../../app';
 @source '../../vendor/tallstackui/tallstackui/**/*.php';
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 
@@ -11,16 +12,18 @@
 
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
-    --color-primary: #0d6e77;
-    --color-primary-50: #ebf8fa;
-    --color-primary-100: #d3eef1;
-    --color-primary-200: #acdbe0;
-    --color-primary-300: #84c4cc;
-    --color-primary-400: #56a3ac;
-    --color-primary-500: #338891;
-    --color-primary-600: #0d6e77;
-    --color-primary-700: #005860;
-    --color-primary-800: #00444b;
-    --color-primary-900: #003036;
-    --color-primary-950: #00191d;
+    --color-primary: #0d3745;
+    --color-primary-50: #f0f9fb;
+    --color-primary-100: #d8eff4;
+    --color-primary-200: #b0dee8;
+    --color-primary-300: #7cc4d5;
+    --color-primary-400: #4da7bd;
+    --color-primary-500: #247185;
+    --color-primary-600: #0d3745;
+    --color-primary-700: #0a2a35;
+    --color-primary-800: #071e26;
+    --color-primary-900: #041217;
+    --color-primary-950: #02090c;
+
+    --color-sectheme: #1da39a;
 }
