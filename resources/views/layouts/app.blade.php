@@ -17,7 +17,7 @@
 </head>
 
 <body class="font-sans antialiased" x-cloak x-data="{ name: @js(auth()->user()->name) }" x-on:name-updated.window="name = $event.detail.name"
-    x-bind:class="{ 'dark bg-dark-800': darkTheme, 'bg-white': !darkTheme }">
+    x-bind:class="{ 'dark bg-dark-900': darkTheme, 'bg-gray-100': !darkTheme }">
     <x-layout>
         <x-slot:top>
             <x-dialog />
