@@ -7,7 +7,7 @@ use App\Livewire\User\Profile;
 use Illuminate\Support\Facades\Route;
 use App\Livewire\StarterPage;
 
-Route::view('/', 'welcome')->name('welcome');
+Route::redirect('/', '/login');
 
 Route::middleware(['auth'])->group(function () {
     Route::view('/dashboard', 'dashboard')->name('dashboard');
