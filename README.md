@@ -94,6 +94,37 @@
 3. **Borrowing Suspension:** Automatic borrowing lock applied to accounts with unsettled penalties or unresolved overdue equipment.
 4. **Damage / Loss Assessment:** Dedicated workflow to assess repair/replacement fees for damaged or destroyed equipment.
 
-## Colors
+---
 
-- theme #0d6e77
+## 🎨 UI Design & Color Palette
+
+The color system is derived from the official **College of Computer Studies (CCS)** emblem logo, implemented using **daisyUI v5** semantic tokens on top of **Tailwind CSS v4**.
+
+### 🌟 Brand Palette (Extracted from CCS Logo)
+
+| Token | Swatch | Hex Code | RGB | Content / Contrast | Usage & Application |
+| :--- | :---: | :--- | :--- | :--- | :--- |
+| **`primary`** | `#0d6e78` | `#0d6e78` | `rgb(13, 110, 120)` | `#ffffff` (5.6:1 AA) | Main action buttons, active navigation states, key brand elements (central shield wave) |
+| **`secondary`** | `#0e3744` | `#0e3744` | `rgb(14, 55, 68)` | `#ffffff` (10.4:1 AAA) | Headers, secondary actions, structural emphasis (top "CCS" wordmark & hull) |
+| **`accent`** | `#1ea399` | `#1ea399` | `rgb(30, 163, 153)` | `#0d1927` (8.5:1 AAA) | Highlights, badges, focus rings, CTAs, status indicators (bottom dynamic swoop) |
+| **`neutral`** | `#0d1927` | `#0d1927` | `rgb(13, 25, 39)` | `#ffffff` (17.5:1 AAA) | Dark buttons, table headers, dark surfaces, high-contrast framing (outer shield outline) |
+
+### 🚦 Semantic & Status Colors
+
+Retained standard feedback colors for consistency across modals, alerts, toasts, and form validations:
+
+| Token | Hex Code | Purpose |
+| :--- | :--- | :--- |
+| **`info`** | `#0284c7` | System announcements, instructions, neutral updates |
+| **`success`** | `#16a34a` | Successful bookings, completed returns, penalty settlements |
+| **`warning`** | `#f59e0b` | Due date warnings, maintenance reminders, pending approvals |
+| **`error`** | `#dc2626` | Overdue loans, validation errors, damage reports, account locks |
+
+### 🌓 Theme Configuration (daisyUI v5)
+
+Themes are configured in `resources/css/app.css` using the `@plugin 'daisyui/theme'` syntax:
+
+- **Light Mode (`light`):** Uses the crisp white and cool-tinted base backgrounds (`#ffffff`, `#f8fafb`) with `#0d6e78` as primary.
+- **Dark Mode (`dark`):** Automatically activates on system dark preference (`prefersdark: true`), leveraging deep midnight slate (`#0d1927`) and elevated mint-teal highlights (`#1ea399`).
+
+> Always use semantic daisyUI utility classes (e.g., `btn-primary`, `bg-base-100`, `text-primary`, `badge-accent`) rather than hardcoded hex values to guarantee proper light/dark theme switching.
