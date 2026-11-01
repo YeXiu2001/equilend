@@ -16,7 +16,7 @@
 | Component                    | Technology / Service                             | Notes & Justifications                                                                                                      |
 | :--------------------------- | :----------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------- |
 | **Full Stack Framework**     | **Laravel 13.x** + **Livewire 4.x**              | Modern, reactive PHP stack without full SPA complexity; rapid UI updates via Livewire.                                      |
-| **UI & Styling**             | **Tailwind CSS**                                 | Utility-first CSS framework for clean, responsive, and maintainable styling.                                                |
+| **UI & Styling**             | **Tailwind CSS v4** + **daisyUI v5**             | Utility-first CSS framework paired with daisyUI component classes for clean, responsive, and maintainable styling.          |
 | **Database**                 | **MySQL**                                        | Reliable relational database management system for inventory, bookings, and audit trails.                                   |
 | **Role-Based Access (RBAC)** | **Laravel Spatie** (`spatie/laravel-permission`) | Industry-standard role and permission management.                                                                           |
 | **Authentication**           | **Laravel Fortify**                              | Headless authentication backend covering login, 2FA, password resets, etc.                                                  |
