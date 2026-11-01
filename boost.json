@@ -7,7 +7,6 @@
     "mcp": true,
     "nightwatch": false,
     "packages": [
-        "tallstackui/tallstackui",
         "barryvdh/laravel-debugbar"
     ],
     "sail": false,
@@ -18,7 +17,7 @@
         "testing-best-practices",
         "livewire-development",
         "tailwindcss-development",
-        "tallstackui-development",
+        "daisyui-development",
         "debug-using-debugbar"
     ]
 }
