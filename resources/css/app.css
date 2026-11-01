@@ -14,20 +14,28 @@
     name: 'light';
     default: true;
     color-scheme: light;
-    --color-primary: #0d6e77;
+    --color-primary: #0d6e78;
     --color-primary-content: #ffffff;
-    --color-secondary: #1da39a;
+    --color-secondary: #0e3744;
     --color-secondary-content: #ffffff;
+    --color-accent: #1ea399;
+    --color-accent-content: #0d1927;
+    --color-neutral: #0d1927;
+    --color-neutral-content: #ffffff;
 }
 
 @plugin 'daisyui/theme' {
     name: 'dark';
     prefersdark: true;
     color-scheme: dark;
-    --color-primary: #1da39a;
-    --color-primary-content: #ffffff;
-    --color-secondary: #0d6e77;
+    --color-primary: #1ea399;
+    --color-primary-content: #091b22;
+    --color-secondary: #0d6e78;
     --color-secondary-content: #ffffff;
+    --color-accent: #38d9cb;
+    --color-accent-content: #091b22;
+    --color-neutral: #0e3744;
+    --color-neutral-content: #f0fdfc;
 }
 
 @theme {
@@ -37,11 +45,11 @@
     --color-primary-200: #b0dee8;
     --color-primary-300: #7cc4d5;
     --color-primary-400: #4da7bd;
-    --color-primary-500: #247185;
-    --color-primary-600: #0d3745;
-    --color-primary-700: #0a2a35;
-    --color-primary-800: #071e26;
-    --color-primary-900: #041217;
-    --color-primary-950: #02090c;
-    --color-sectheme: #1da39a;
+    --color-primary-500: #0d6e78;
+    --color-primary-600: #0e3744;
+    --color-primary-700: #0d1927;
+    --color-primary-800: #07131f;
+    --color-primary-900: #040c14;
+    --color-primary-950: #02070c;
+    --color-sectheme: #1ea399;
 }
