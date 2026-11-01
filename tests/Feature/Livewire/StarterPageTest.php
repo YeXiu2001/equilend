@@ -19,12 +19,12 @@ it('renders the starter page component', function () {
         ->assertSee('Add Something');
 });
 
-it('renders the soft customized flex layout for the card body', function () {
+it('renders the flex layout for the card body', function () {
     $html = Livewire::actingAs($this->auth)
         ->test(StarterPage::class)
         ->html();
 
-    expect($html)->toContain('flex items-center justify-between');
+    expect($html)->toContain('flex flex-row items-center justify-between');
 });
 
 it('can visit the starter page route', function () {

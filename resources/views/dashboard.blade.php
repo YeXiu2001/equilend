@@ -1,36 +1,41 @@
 <x-app-layout>
-    <x-card shadowless bordered header="Welcome to the TallStackUI Starter Kit">
-        <div class="space-y-2">
-            <p>
-                👋🏻 This is the TallStackUI starter kit for Laravel 13. With this TallStackUI starter kit you will be
-                able to enjoy a ready-to-use application to initialize your next Laravel 13 project with TallStackUI.
-            </p>
-            <div class="mt-4 space-y-2">
-                <i>
-                    "What this starter kit includes out of the box?"
-                </i>
-                <ul class="ml-2 mt-2 list-inside list-decimal font-semibold">
-                    <li>Laravel v13</li>
-                    <li>Livewire v4</li>
-                    <li>TallStackUI v4</li>
-                    <li>TailwindCSS v4</li>
-                </ul>
-                <p>And also:</p>
-                <ul class="ml-2 mt-2 list-inside list-decimal font-semibold">
-                    <li><a href="https://github.com/barryvdh/laravel-debugbar" target="_blank">DebugBar</a></li>
-                    <li><a href="https://github.com/larastan/larastan" target="_blank">LaraStan</a></li>
-                    <li><a href="https://pestphp.com/" target="_blank">Pest</a></li>
-                    <li><a href="https://laravel.com/docs/pint" target="_blank">Pint</a></li>
-                </ul>
+    <div class="card bg-base-100 card-border border-base-300 shadow-xs">
+        <div class="card-body">
+            <h2 class="card-title border-b border-base-200 pb-3 mb-2">Welcome to Equilend</h2>
+
+            <div class="space-y-3 text-sm text-base-content/90">
+                <p>
+                    👋🏻 Welcome to <strong>Equilend</strong>, built with Laravel 13, Livewire 4, Tailwind CSS 4, and daisyUI 5.
+                </p>
+                <div class="mt-4 space-y-2">
+                    <i class="text-base-content/70">
+                        "What this stack includes out of the box?"
+                    </i>
+                    <ul class="ml-2 mt-2 list-inside list-decimal font-semibold space-y-1">
+                        <li>Laravel v13</li>
+                        <li>Livewire v4</li>
+                        <li>daisyUI v5</li>
+                        <li>TailwindCSS v4</li>
+                    </ul>
+                    <p class="pt-2">And also:</p>
+                    <ul class="ml-2 mt-2 list-inside list-decimal font-semibold space-y-1">
+                        <li><a href="https://github.com/barryvdh/laravel-debugbar" target="_blank" class="link link-hover">DebugBar</a></li>
+                        <li><a href="https://github.com/larastan/larastan" target="_blank" class="link link-hover">LaraStan</a></li>
+                        <li><a href="https://pestphp.com/" target="_blank" class="link link-hover">Pest</a></li>
+                        <li><a href="https://laravel.com/docs/pint" target="_blank" class="link link-hover">Pint</a></li>
+                    </ul>
+                </div>
+
+                <div class="pt-2">
+                    <a href="https://daisyui.com" target="_blank" class="btn btn-primary btn-sm">daisyUI v5</a>
+                </div>
             </div>
 
-            <x-button color="primary">TallStackUI</x-button>
+            <div class="card-actions pt-4 border-t border-base-200 mt-4">
+                <span class="text-xs text-base-content/70">
+                    ⚠️ <a href="https://daisyui.com/docs/v5/" target="_blank" class="link link-primary font-semibold">Make sure to read the docs about daisyUI v5!</a>
+                </span>
+            </div>
         </div>
-        <x-slot:footer>
-            <span class="text-xs">
-                ⚠️ <x-link href="https://tallstackui.com/docs/starter-kit" bold blank sm>Make sure to read the docs
-                    about the starter kit!</x-link>
-            </span>
-        </x-slot:footer>
-    </x-card>
+    </div>
 </x-app-layout>

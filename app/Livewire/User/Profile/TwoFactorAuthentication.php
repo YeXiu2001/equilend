@@ -104,7 +104,7 @@ class TwoFactorAuthentication extends Component
 
             $this->refreshUser();
             $this->reset('code', 'current_password');
-            $this->js('setTimeout(() => $tsui.open.modal("recovery-codes"), 250)');
+            $this->js('setTimeout(() => document.getElementById("recovery-codes")?.showModal(), 250)');
 
             return;
         } catch (ValidationException) {

@@ -57,8 +57,8 @@ it('dispatches success alert after saving', function () {
         ->set('user.name', 'Updated Again')
         ->call('save')
         ->assertDispatched('updated')
-        ->assertDispatched('ts-ui:dialog', function (string $event, array $params) {
-            return $event === 'ts-ui:dialog' &&
+        ->assertDispatched('alert:dialog', function (string $event, array $params) {
+            return $event === 'alert:dialog' &&
                 $params['type'] === 'success' &&
                 $params['title'] === 'Done!';
         });
