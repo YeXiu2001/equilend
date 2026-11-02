@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Migrations\Migration;
 
 return new class extends Migration
 {
@@ -24,14 +24,14 @@ return new class extends Migration
         Schema::create('organization_payment_methods', function (Blueprint $table) {
             $table->id();
             $table->foreignId('organization_id')->constrained('organizations')->cascadeOnDelete();
-            $table->foreignId('p_m_id')->constrained('payment_methods')->cascadeOnDelete();
+            $table->foreignId('payment_method_id')->constrained('payment_methods')->cascadeOnDelete();
             $table->string('account_name');          // Same account name for all numbers in this method
             $table->json('account_numbers');         // ['09171234567', '09181234567']
             $table->boolean('is_enabled')->default(true); // Enabled / Disabled toggle
             $table->timestamps();
 
             // Prevent duplicate configuration of the same payment method for an organization
-            $table->unique(['organization_id', 'payment_method_id']);
+            $table->unique(['organization_id', 'payment_method_id'], 'org_pm_unique');
         });
     }
 
@@ -40,4 +40,4 @@ return new class extends Migration
         Schema::dropIfExists('organization_payment_methods');
         Schema::dropIfExists('payment_methods');
     }
-}; 
+};
