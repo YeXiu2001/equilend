@@ -28,13 +28,13 @@ class Update extends Component
 
     public ?string $phone = null;
 
-    public ?string $address = null;
-
     public ?string $description = null;
 
     public bool $is_active = true;
 
     public ?int $assigned_user_id = null;
+
+    public string $user_search = '';
 
     public bool $modal = false;
 
@@ -51,10 +51,10 @@ class Update extends Component
         $this->code             = $organization->code;
         $this->email            = $organization->email;
         $this->phone            = $organization->phone;
-        $this->address          = $organization->address;
         $this->description      = $organization->description;
         $this->is_active        = (bool) $organization->is_active;
         $this->assigned_user_id = $organization->assignedUser?->id;
+        $this->user_search      = '';
 
         $this->resetValidation();
         $this->modal = true;
@@ -67,7 +67,6 @@ class Update extends Component
             'code'             => ['nullable', 'string', 'max:20', Rule::unique('organizations', 'code')->ignore($this->organization?->id)],
             'email'            => ['nullable', 'string', 'email', 'max:255'],
             'phone'            => ['nullable', 'string', 'max:50'],
-            'address'          => ['nullable', 'string', 'max:500'],
             'description'      => ['nullable', 'string', 'max:1000'],
             'is_active'        => ['boolean'],
             'assigned_user_id' => ['nullable', 'integer', 'exists:users,id'],
@@ -75,8 +74,15 @@ class Update extends Component
     }
 
     #[Computed]
+    public function selectedUser(): ?User
+    {
+        return $this->assigned_user_id !== null ? User::find($this->assigned_user_id) : null;
+    }
+
+    #[Computed]
     public function availableUsers(): Collection
     {
+        $term              = mb_trim($this->user_search);
         $currentAssignedId = $this->assigned_user_id;
 
         return User::query()
@@ -87,8 +93,27 @@ class Update extends Component
                     $query->orWhere('id', $currentAssignedId);
                 }
             })
+            ->when($term !== '', function ($query) use ($term): void {
+                $query->where(function ($q) use ($term): void {
+                    $q->where('name', 'like', "%{$term}%")
+                        ->orWhere('email', 'like', "%{$term}%");
+                });
+            })
             ->orderBy('name')
+            ->limit(10)
             ->get();
+    }
+
+    public function selectUser(int $userId): void
+    {
+        $this->assigned_user_id = $userId;
+        $this->user_search      = '';
+    }
+
+    public function clearAssignedUser(): void
+    {
+        $this->assigned_user_id = null;
+        $this->user_search      = '';
     }
 
     public function save(): void
@@ -104,7 +129,6 @@ class Update extends Component
             'code'        => $validated['code'] ? mb_strtoupper($validated['code']) : null,
             'email'       => $validated['email'],
             'phone'       => $validated['phone'],
-            'address'     => $validated['address'],
             'description' => $validated['description'],
             'is_active'   => $validated['is_active'],
         ]);

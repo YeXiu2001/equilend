@@ -43,17 +43,81 @@ it('allows superadmin to view organization index and lists organizations', funct
         ->assertSee('TSO');
 });
 
-it('allows superadmin to create an organization and assign an unassigned user', function () {
+it('supports infinite scrolling with initial limit of 10', function () {
     Auth::login($this->superAdmin);
 
-    $userToAssign = User::factory()->create(['name' => 'Assigned Manager']);
+    Organization::factory()->count(15)->create();
 
-    Livewire::test(Create::class)
+    $component = Livewire::test(Index::class)
+        ->assertSet('limit', 10);
+
+    expect($component->get('rows')->count())->toBe(10)
+        ->and($component->get('hasMore'))->toBeTrue();
+
+    $component->call('loadMore')
+        ->assertSet('limit', 20);
+
+    expect($component->get('rows')->count())->toBeGreaterThanOrEqual(15)
+        ->and($component->get('hasMore'))->toBeFalse();
+});
+
+it('filters organizations by search and resets limit to 10', function () {
+    Auth::login($this->superAdmin);
+
+    Organization::factory()->create(['name' => 'Unique Searchable Branch', 'code' => 'USB']);
+    Organization::factory()->count(12)->create();
+
+    $component = Livewire::test(Index::class)
+        ->call('loadMore')
+        ->assertSet('limit', 20)
+        ->set('search', 'Unique Searchable')
+        ->assertSet('limit', 10);
+
+    expect($component->get('rows')->count())->toBe(1)
+        ->and($component->get('rows')->first()->name)->toBe('Unique Searchable Branch');
+});
+
+it('supports sorting columns', function () {
+    Auth::login($this->superAdmin);
+
+    Livewire::test(Index::class)
+        ->call('sortBy', 'name')
+        ->assertSet('sort.column', 'name')
+        ->assertSet('sort.direction', 'asc')
+        ->call('sortBy', 'name')
+        ->assertSet('sort.direction', 'desc');
+});
+
+it('allows superadmin to search and assign user via typeahead', function () {
+    Auth::login($this->superAdmin);
+
+    $userToAssign = User::factory()->create(['name' => 'Maria Santos', 'email' => 'maria@example.com']);
+    User::factory()->count(15)->create(); // Create extra users to verify limit of 10
+
+    $component = Livewire::test(Create::class)
         ->dispatch('open::create-organization')
-        ->assertSet('modal', true)
-        ->set('name', 'Bacolod Branch')
+        ->assertSet('modal', true);
+
+    // Available users query limited to 10
+    expect($component->get('availableUsers')->count())->toBe(10);
+
+    // Filter using typeahead debounced search
+    $component->set('user_search', 'Maria Santos');
+    expect($component->get('availableUsers')->count())->toBe(1)
+        ->and($component->get('availableUsers')->first()->id)->toBe($userToAssign->id);
+
+    // Select user
+    $component->call('selectUser', $userToAssign->id)
+        ->assertSet('assigned_user_id', $userToAssign->id)
+        ->assertSet('user_search', '');
+
+    expect($component->get('selectedUser')->id)->toBe($userToAssign->id);
+
+    // Save organization
+    $component->set('name', 'Bacolod Branch')
         ->set('code', 'BCD')
-        ->set('assigned_user_id', $userToAssign->id)
+        ->set('email', 'bacolod@equilend.test')
+        ->set('phone', '09171234567')
         ->call('save')
         ->assertDispatched('created')
         ->assertSet('modal', false);
@@ -64,18 +128,26 @@ it('allows superadmin to create an organization and assign an unassigned user', 
         ->and($org->assignedUser->id)->toBe($userToAssign->id);
 });
 
-it('allows superadmin to update an organization', function () {
+it('allows superadmin to update an organization and change assigned user', function () {
     Auth::login($this->superAdmin);
+
+    $oldUser = User::factory()->create(['name' => 'Old User']);
+    $newUser = User::factory()->create(['name' => 'New User']);
 
     $org = Organization::factory()->create([
         'name' => 'Old Branch Name',
         'code' => 'OLD',
     ]);
+    $org->members()->attach($oldUser->id, ['role' => 'admin']);
 
-    Livewire::test(Update::class)
+    $component = Livewire::test(Update::class)
         ->dispatch('load::organization', organization: $org->id)
         ->assertSet('modal', true)
-        ->assertSet('name', 'Old Branch Name')
+        ->assertSet('assigned_user_id', $oldUser->id)
+        ->call('clearAssignedUser')
+        ->assertSet('assigned_user_id', null)
+        ->call('selectUser', $newUser->id)
+        ->assertSet('assigned_user_id', $newUser->id)
         ->set('name', 'New Branch Name')
         ->set('code', 'NEW')
         ->call('save')
@@ -83,7 +155,8 @@ it('allows superadmin to update an organization', function () {
         ->assertSet('modal', false);
 
     expect($org->fresh()->name)->toBe('New Branch Name')
-        ->and($org->fresh()->code)->toBe('NEW');
+        ->and($org->fresh()->code)->toBe('NEW')
+        ->and($org->fresh()->assignedUser->id)->toBe($newUser->id);
 });
 
 it('allows superadmin to delete an organization', function () {

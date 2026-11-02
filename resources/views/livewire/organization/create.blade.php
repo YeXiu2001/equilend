@@ -14,7 +14,7 @@
                         @enderror
                     </fieldset>
 
-                    <fieldset class="fieldset w-full">
+                    <fieldset class="fieldset w-full sm:col-span-2">
                         <legend class="fieldset-legend">{{ __('Code / Identifier') }}</legend>
                         <input type="text" wire:model="code" placeholder="{{ __('e.g. CEB') }}"
                             class="input w-full uppercase @error('code') input-error @enderror" />
@@ -23,21 +23,78 @@
                         @enderror
                     </fieldset>
 
-                    <fieldset class="fieldset w-full">
-                        <legend class="fieldset-legend">{{ __('Assign Manager') }}</legend>
-                        <select wire:model="assigned_user_id" class="select w-full @error('assigned_user_id') select-error @enderror">
-                            <option value="">{{ __('-- Select Unassigned User --') }}</option>
-                            @foreach ($this->availableUsers as $user)
-                                <option value="{{ $user->id }}">{{ $user->name }} ({{ $user->email }})</option>
-                            @endforeach
-                        </select>
+                    {{-- Typeahead Assign user --}}
+                    <fieldset class="fieldset w-full sm:col-span-2">
+                        <legend class="fieldset-legend">{{ __('Assign user') }}</legend>
+
+                        @if ($this->selectedUser)
+                            <div class="flex items-center justify-between p-2.5 rounded-xl border border-primary/30 bg-primary/5">
+                                <div class="flex items-center gap-2.5 min-w-0">
+                                    <div class="avatar avatar-placeholder shrink-0">
+                                        <div class="bg-primary text-primary-content w-7 rounded-full text-xs font-bold">
+                                            <span>{{ strtoupper(substr($this->selectedUser->name, 0, 1)) }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="text-xs font-semibold text-base-content truncate">{{ $this->selectedUser->name }}</div>
+                                        <div class="text-[11px] text-base-content/60 truncate">{{ $this->selectedUser->email }}</div>
+                                    </div>
+                                </div>
+                                <button type="button" wire:click="clearAssignedUser" class="btn btn-ghost btn-xs text-error shrink-0">
+                                    {{ __('Change') }}
+                                </button>
+                            </div>
+                        @else
+                            <div class="relative" x-data="{ open: false }" @click.outside="open = false">
+                                <label class="input w-full flex items-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 opacity-50 shrink-0">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                                    </svg>
+                                    <input type="text"
+                                        wire:model.live.debounce.300ms="user_search"
+                                        @focus="open = true"
+                                        @input="open = true"
+                                        placeholder="{{ __('Search user by name or email...') }}"
+                                        class="grow text-sm" />
+                                    <span wire:loading wire:target="user_search" class="loading loading-spinner loading-xs text-primary shrink-0"></span>
+                                </label>
+
+                                <div x-show="open" x-cloak
+                                    class="absolute left-0 right-0 mt-1 max-h-56 overflow-y-auto rounded-xl bg-base-100 border border-base-300 shadow-xl z-50 p-1">
+                                    @forelse ($this->availableUsers as $user)
+                                        <button type="button"
+                                            wire:click="selectUser({{ $user->id }})"
+                                            @click="open = false"
+                                            class="w-full flex items-center justify-between p-2 rounded-lg text-left hover:bg-base-200 transition-colors">
+                                            <div class="flex items-center gap-2 min-w-0">
+                                                <div class="avatar avatar-placeholder shrink-0">
+                                                    <div class="bg-base-300 text-base-content w-6 h-6 rounded-full text-[10px] font-bold">
+                                                        <span>{{ strtoupper(substr($user->name, 0, 1)) }}</span>
+                                                    </div>
+                                                </div>
+                                                <div class="min-w-0">
+                                                    <div class="text-xs font-semibold text-base-content truncate">{{ $user->name }}</div>
+                                                    <div class="text-[11px] text-base-content/60 truncate">{{ $user->email }}</div>
+                                                </div>
+                                            </div>
+                                            <span class="text-[11px] text-primary font-medium shrink-0 ml-2">{{ __('Select') }}</span>
+                                        </button>
+                                    @empty
+                                        <div class="p-3 text-center text-xs text-base-content/50">
+                                            {{ __('No eligible users found') }}
+                                        </div>
+                                    @endforelse
+                                </div>
+                            </div>
+                        @endif
+
                         @error('assigned_user_id')
                             <p class="label text-error text-xs">{{ $message }}</p>
                         @enderror
                     </fieldset>
 
                     <fieldset class="fieldset w-full">
-                        <legend class="fieldset-legend">{{ __('Contact Email') }}</legend>
+                        <legend class="fieldset-legend">{{ __('Email') }}</legend>
                         <input type="email" wire:model="email" placeholder="{{ __('branch@equilend.test') }}"
                             class="input w-full @error('email') input-error @enderror" />
                         @error('email')
@@ -46,7 +103,7 @@
                     </fieldset>
 
                     <fieldset class="fieldset w-full">
-                        <legend class="fieldset-legend">{{ __('Contact Phone') }}</legend>
+                        <legend class="fieldset-legend">{{ __('Phone') }}</legend>
                         <input type="text" wire:model="phone" placeholder="{{ __('09171234567') }}"
                             class="input w-full @error('phone') input-error @enderror" />
                         @error('phone')
@@ -54,15 +111,6 @@
                         @enderror
                     </fieldset>
                 </div>
-
-                <fieldset class="fieldset w-full">
-                    <legend class="fieldset-legend">{{ __('Physical Address') }}</legend>
-                    <input type="text" wire:model="address" placeholder="{{ __('Street, City, Province') }}"
-                        class="input w-full @error('address') input-error @enderror" />
-                    @error('address')
-                        <p class="label text-error text-xs">{{ $message }}</p>
-                    @enderror
-                </fieldset>
 
                 <fieldset class="fieldset w-full">
                     <legend class="fieldset-legend">{{ __('Description / Notes') }}</legend>

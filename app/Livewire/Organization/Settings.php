@@ -31,8 +31,6 @@ class Settings extends Component
 
     public ?string $phone = null;
 
-    public ?string $address = null;
-
     public ?string $description = null;
 
     /**
@@ -101,7 +99,6 @@ class Settings extends Component
         $this->code        = $this->organization->code;
         $this->email       = $this->organization->email;
         $this->phone       = $this->organization->phone;
-        $this->address     = $this->organization->address;
         $this->description = $this->organization->description;
 
         // Load payment configurations
@@ -162,7 +159,6 @@ class Settings extends Component
             'code'        => ['nullable', 'string', 'max:20', Rule::unique('organizations', 'code')->ignore($this->organization?->id)],
             'email'       => ['nullable', 'string', 'email', 'max:255'],
             'phone'       => ['nullable', 'string', 'max:50'],
-            'address'     => ['nullable', 'string', 'max:500'],
             'description' => ['nullable', 'string', 'max:1000'],
         ];
 
@@ -207,7 +203,6 @@ class Settings extends Component
             'code'        => $validated['code'] ? mb_strtoupper($validated['code']) : null,
             'email'       => $validated['email'],
             'phone'       => $validated['phone'],
-            'address'     => $validated['address'],
             'description' => $validated['description'],
         ]);
 

@@ -5,18 +5,15 @@ declare(strict_types=1);
 namespace App\Livewire\PaymentMethods;
 
 use Livewire\Component;
-use Livewire\WithPagination;
 use App\Models\PaymentMethod;
 use Livewire\Attributes\Computed;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Collection;
 
 class Index extends Component
 {
-    use WithPagination;
-
-    public ?int $quantity = 10;
+    public int $limit = 10;
 
     public ?string $search = null;
 
@@ -42,13 +39,55 @@ class Index extends Component
         }
     }
 
+    public function updatedSearch(): void
+    {
+        $this->limit = 10;
+    }
+
+    public function sortBy(string $column): void
+    {
+        if ($this->sort['column'] === $column) {
+            $this->sort['direction'] = $this->sort['direction'] === 'asc' ? 'desc' : 'asc';
+        } else {
+            $this->sort['column']    = $column;
+            $this->sort['direction'] = 'asc';
+        }
+
+        $this->limit = 10;
+    }
+
+    public function loadMore(): void
+    {
+        $this->limit += 10;
+    }
+
+    #[Computed]
+    public function totalCount(): int
+    {
+        return $this->baseQuery()->count();
+    }
+
+    #[Computed]
+    public function rows(): Collection
+    {
+        return $this->baseQuery()
+            ->orderBy(...array_values($this->sort))
+            ->limit($this->limit)
+            ->get();
+    }
+
+    #[Computed]
+    public function hasMore(): bool
+    {
+        return $this->rows->count() < $this->totalCount;
+    }
+
     public function render(): View
     {
         return view('livewire.payment-methods.index');
     }
 
-    #[Computed]
-    public function rows(): LengthAwarePaginator
+    protected function baseQuery(): Builder
     {
         return PaymentMethod::query()
             ->when($this->search !== null && mb_trim($this->search) !== '', function (Builder $query): void {
@@ -58,9 +97,6 @@ class Index extends Component
                         ->orWhere('payment_code', 'like', $term)
                         ->orWhere('description', 'like', $term);
                 });
-            })
-            ->orderBy(...array_values($this->sort))
-            ->paginate($this->quantity)
-            ->withQueryString();
+            });
     }
 }

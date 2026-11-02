@@ -1,234 +1,115 @@
-<div>
-    {{-- Uniform Breadcrumb Card --}}
-    <div class="card bg-base-100 card-border border-base-300 shadow-xs mb-6">
-        <div class="card-body flex flex-col sm:flex-row sm:items-center sm:justify-between py-4 gap-4">
-            <div class="flex flex-wrap items-center gap-3">
-                <div class="breadcrumbs text-sm">
-                    <ul>
-                        <li class="flex items-center gap-1.5">
-                            <x-heroicon-o-cog-6-tooth class="w-4 h-4" />
-                            <span>{{ __('Organization Settings') }}</span>
-                        </li>
-                        <li>{{ $organization ? $organization->name : __('Settings') }}</li>
-                    </ul>
-                </div>
-
-                {{-- Superadmin Organization Switcher --}}
-                @if (auth()->user()->hasRole('superadmin') && $this->allOrganizations->count() > 1)
-                    <div class="flex items-center gap-2">
-                        <span class="text-xs font-semibold text-base-content/60">{{ __('Switch Org:') }}</span>
-                        <select wire:change="changeOrganization($event.target.value)" class="select select-xs select-bordered">
-                            @foreach ($this->allOrganizations as $org)
-                                <option value="{{ $org->id }}" @selected($organization && $organization->id === $org->id)>
-                                    {{ $org->name }} ({{ $org->code ?? 'N/A' }})
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                @endif
-            </div>
-
-            @if ($organization)
-                <div>
-                    <button type="submit" form="org-settings-form" class="btn btn-primary btn-sm px-6 font-semibold" wire:loading.attr="disabled" wire:target="save">
-                        <span wire:loading wire:target="save" class="loading loading-spinner loading-xs"></span>
-                        <x-heroicon-o-check wire:loading.remove wire:target="save" class="w-4 h-4" />
-                        <span>{{ __('Save Changes') }}</span>
-                    </button>
-                </div>
-            @endif
-        </div>
-    </div>
-
+<div x-data="{ activeTab: 'general' }">
     @if (! $organization)
         {{-- Empty State when user has no assigned organization --}}
-        <div class="card bg-base-100 card-border border-base-300 shadow-xs">
-            <div class="card-body text-center py-12">
-                <div class="w-16 h-16 rounded-full bg-warning/10 text-warning mx-auto flex items-center justify-center mb-4">
+        <div class="card bg-base-100 card-border border-base-300 shadow-xs max-w-xl mx-auto my-12">
+            <div class="card-body text-center py-12 px-6">
+                <div class="w-16 h-16 rounded-2xl bg-warning/10 text-warning mx-auto flex items-center justify-center mb-4 shadow-inner">
                     <x-heroicon-o-exclamation-triangle class="w-8 h-8" />
                 </div>
-                <h3 class="text-lg font-bold text-base-content">{{ __('No Organization Assigned') }}</h3>
-                <p class="text-sm text-base-content/60 max-w-md mx-auto mt-1">
+                <h3 class="text-xl font-bold text-base-content">{{ __('No Organization Assigned') }}</h3>
+                <p class="text-sm text-base-content/60 max-w-md mx-auto mt-2 leading-relaxed">
                     {{ __('You are not currently assigned to any organization. Please contact your system administrator to get assigned.') }}
                 </p>
             </div>
         </div>
     @else
-        <form id="org-settings-form" wire:submit="save" class="space-y-6">
-            {{-- Section 1: Organization Profile Details --}}
-            <div class="card bg-base-100 card-border border-base-300 shadow-xs">
-                <div class="card-body">
-                    <div class="border-b border-base-200 pb-3 mb-4">
-                        <h3 class="text-base font-bold text-base-content">{{ __('Organization Details') }}</h3>
-                        <p class="text-xs text-base-content/60">{{ __('Manage branch identity, official contact info, and address.') }}</p>
-                    </div>
+        {{-- Uniform Breadcrumb & Action Card --}}
+        <div class="card bg-base-100 card-border border-base-300 shadow-xs mb-4">
+            <div class="card-body flex flex-col md:flex-row md:items-center md:justify-between py-4 gap-4">
+                <div class="breadcrumbs text-sm">
+                    <ul>
+                        <li class="flex items-center gap-1.5">
+                            <x-heroicon-o-building-office-2 class="w-4 h-4" />
+                            <span>{{ __('Organization') }}</span>
+                        </li>
+                        <li>{{ __('Settings') }}</li>
+                        @if ($organization)
+                            <li class="font-semibold text-base-content flex items-center gap-2">
+                                <span>{{ $organization->name }}</span>
+                                @if ($organization->code)
+                                    <span class="font-mono text-xs text-base-content/60">({{ $organization->code }})</span>
+                                @endif
+                                @if ($organization->is_active)
+                                    <span class="badge badge-success badge-sm text-success-content font-medium">{{ __('Active') }}</span>
+                                @else
+                                    <span class="badge badge-ghost badge-sm font-medium">{{ __('Inactive') }}</span>
+                                @endif
+                            </li>
+                        @endif
+                    </ul>
+                </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <fieldset class="fieldset w-full sm:col-span-2">
-                            <legend class="fieldset-legend">{{ __('Organization Name') }} *</legend>
-                            <input type="text" wire:model="name" required
-                                class="input w-full @error('name') input-error @enderror" />
-                            @error('name')
-                                <p class="label text-error text-xs">{{ $message }}</p>
-                            @enderror
-                        </fieldset>
+                <div class="flex flex-wrap items-center gap-3">
+                    @if (auth()->user()->hasRole('superadmin') && $this->allOrganizations->count() > 1)
+                        <div class="flex items-center gap-2 bg-base-200/60 px-3 py-1.5 rounded-lg border border-base-300 text-xs">
+                            <span class="font-medium text-base-content/60">{{ __('Switch Org:') }}</span>
+                            <select wire:change="changeOrganization($event.target.value)" class="select select-xs select-ghost font-medium">
+                                @foreach ($this->allOrganizations as $org)
+                                    <option value="{{ $org->id }}" @selected($organization && $organization->id === $org->id)>
+                                        {{ $org->name }} {{ $org->code ? "({$org->code})" : '' }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @endif
 
-                        <fieldset class="fieldset w-full">
-                            <legend class="fieldset-legend">{{ __('Code / Identifier') }}</legend>
-                            <input type="text" wire:model="code"
-                                class="input w-full uppercase @error('code') input-error @enderror" />
-                            @error('code')
-                                <p class="label text-error text-xs">{{ $message }}</p>
-                            @enderror
-                        </fieldset>
-
-                        <fieldset class="fieldset w-full">
-                            <legend class="fieldset-legend">{{ __('Email Address') }}</legend>
-                            <input type="email" wire:model="email"
-                                class="input w-full @error('email') input-error @enderror" />
-                            @error('email')
-                                <p class="label text-error text-xs">{{ $message }}</p>
-                            @enderror
-                        </fieldset>
-
-                        <fieldset class="fieldset w-full">
-                            <legend class="fieldset-legend">{{ __('Phone / Contact Number') }}</legend>
-                            <input type="text" wire:model="phone"
-                                class="input w-full @error('phone') input-error @enderror" />
-                            @error('phone')
-                                <p class="label text-error text-xs">{{ $message }}</p>
-                            @enderror
-                        </fieldset>
-
-                        <fieldset class="fieldset w-full sm:col-span-2 lg:col-span-3">
-                            <legend class="fieldset-legend">{{ __('Physical Address') }}</legend>
-                            <input type="text" wire:model="address"
-                                class="input w-full @error('address') input-error @enderror" />
-                            @error('address')
-                                <p class="label text-error text-xs">{{ $message }}</p>
-                            @enderror
-                        </fieldset>
-
-                        <fieldset class="fieldset w-full sm:col-span-2 lg:col-span-3">
-                            <legend class="fieldset-legend">{{ __('Description / Notes') }}</legend>
-                            <textarea wire:model="description" rows="2"
-                                class="textarea w-full @error('description') textarea-error @enderror"></textarea>
-                            @error('description')
-                                <p class="label text-error text-xs">{{ $message }}</p>
-                            @enderror
-                        </fieldset>
-                    </div>
+                    <button type="submit" form="org-settings-form" class="btn btn-primary btn-sm px-5 font-semibold" wire:loading.attr="disabled" wire:target="save">
+                        <span wire:loading wire:target="save" class="loading loading-spinner loading-xs"></span>
+                        <x-heroicon-o-check wire:loading.remove wire:target="save" class="w-4 h-4" />
+                        <span>{{ __('Save Changes') }}</span>
+                    </button>
                 </div>
             </div>
+        </div>
 
-            {{-- Section 2: Payment Methods Configuration --}}
-            <div class="card bg-base-100 card-border border-base-300 shadow-xs">
-                <div class="card-body">
-                    <div class="border-b border-base-200 pb-3 mb-4">
-                        <h3 class="text-base font-bold text-base-content">{{ __('Payment Methods Configuration') }}</h3>
-                        <p class="text-xs text-base-content/60">
-                            {{ __('Enable payment channels (e.g. GCash, Maya, GoTyme). Each channel shares a single official account name with multiple account numbers.') }}
-                        </p>
+        {{-- Tabs Navigation --}}
+        <div role="tablist" class="tabs tabs-border border-b border-base-200 mb-6 overflow-x-auto">
+            <button type="button" role="tab" class="tab font-medium gap-2"
+                :class="{ 'tab-active text-primary font-semibold': activeTab === 'general' }"
+                @click="activeTab = 'general'">
+                <x-heroicon-o-building-office class="w-4 h-4" />
+                <span>{{ __('General Profile') }}</span>
+            </button>
+            <button type="button" role="tab" class="tab font-medium gap-2"
+                :class="{ 'tab-active text-primary font-semibold': activeTab === 'payments' }"
+                @click="activeTab = 'payments'">
+                <x-heroicon-o-credit-card class="w-4 h-4" />
+                <span>{{ __('Payment Methods') }}</span>
+                @php
+                    $enabledCount = collect($paymentConfigs)->where('is_enabled', true)->count();
+                @endphp
+                @if ($enabledCount > 0)
+                    <span class="text-xs font-semibold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">
+                        {{ $enabledCount }}
+                    </span>
+                @endif
+            </button>
+        </div>
+
+        {{-- Form containing both tabs --}}
+        <form id="org-settings-form" wire:submit="save" class="space-y-6">
+            {{-- TAB 1: General Profile --}}
+            <div x-show="activeTab === 'general'">
+                @include('livewire.organization.settings.general')
+            </div>
+
+            {{-- TAB 2: Payment Methods --}}
+            <div x-show="activeTab === 'payments'" x-cloak>
+                @include('livewire.organization.settings.payment-methods')
+            </div>
+
+            {{-- Sticky Save CTA Bar --}}
+            <div class="card bg-base-100 card-border border-base-300 shadow-xs p-4 sticky bottom-4 z-20 backdrop-blur-md bg-base-100/90">
+                <div class="flex items-center justify-between gap-4">
+                    <div class="text-xs text-base-content/60 hidden sm:block">
+                        {{ __('Save after updating organization profile or payment methods configuration.') }}
                     </div>
 
-                    <div class="space-y-4">
-                        @forelse ($this->availablePaymentMethods as $pm)
-                            @php
-                                $isEnabled = !empty($paymentConfigs[$pm->id]['is_enabled']);
-                            @endphp
-                            <div class="border border-base-300/80 rounded-2xl p-4 transition-all duration-200 @if($isEnabled) bg-base-200/30 @else bg-base-100 opacity-90 @endif"
-                                wire:key="pm-config-{{ $pm->id }}">
-                                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-base-200/60">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm @if($isEnabled) bg-primary/10 text-primary border border-primary/20 @else bg-base-200 text-base-content/60 @endif">
-                                            {{ strtoupper(substr($pm->payment_code, 0, 2)) }}
-                                        </div>
-                                        <div>
-                                            <div class="flex items-center gap-2">
-                                                <h4 class="font-bold text-sm text-base-content">{{ $pm->name }}</h4>
-                                                <span class="badge badge-xs font-mono">{{ $pm->payment_code }}</span>
-                                            </div>
-                                            <p class="text-xs text-base-content/60">{{ $pm->description ?? __('Digital wallet / Bank transfer') }}</p>
-                                        </div>
-                                    </div>
-
-                                    <div class="flex items-center gap-3 self-end sm:self-auto">
-                                        <span class="text-xs font-semibold @if($isEnabled) text-success @else text-base-content/50 @endif">
-                                            {{ $isEnabled ? __('Enabled') : __('Disabled') }}
-                                        </span>
-                                        <input type="checkbox"
-                                            wire:model.live="paymentConfigs.{{ $pm->id }}.is_enabled"
-                                            class="toggle toggle-primary toggle-sm" />
-                                    </div>
-                                </div>
-
-                                @if ($isEnabled)
-                                    <div class="pt-4 space-y-4">
-                                        {{-- Single Account Name --}}
-                                        <fieldset class="fieldset w-full max-w-lg">
-                                            <legend class="fieldset-legend">{{ __('Account Name') }} *</legend>
-                                            <input type="text"
-                                                wire:model="paymentConfigs.{{ $pm->id }}.account_name"
-                                                placeholder="{{ __('e.g. EquiLend Branch Inc.') }}"
-                                                class="input w-full @error('paymentConfigs.'.$pm->id.'.account_name') input-error @enderror" />
-                                            @error('paymentConfigs.'.$pm->id.'.account_name')
-                                                <p class="label text-error text-xs">{{ $message }}</p>
-                                            @enderror
-                                        </fieldset>
-
-                                        {{-- Dynamic Multiple Account Numbers --}}
-                                        <div>
-                                            <div class="flex items-center justify-between mb-2">
-                                                <label class="text-xs font-semibold text-base-content/80">
-                                                    {{ __('Account Numbers') }} ({{ count($paymentConfigs[$pm->id]['account_numbers'] ?? []) }})
-                                                </label>
-                                                <button type="button"
-                                                    wire:click="addAccountNumber({{ $pm->id }})"
-                                                    class="btn btn-outline btn-xs gap-1 rounded-lg">
-                                                    <x-heroicon-o-plus class="w-3 h-3" />
-                                                    <span>{{ __('Add Number') }}</span>
-                                                </button>
-                                            </div>
-
-                                            <div class="space-y-2 max-w-lg">
-                                                @foreach ($paymentConfigs[$pm->id]['account_numbers'] ?? [''] as $idx => $accountNumber)
-                                                    <div class="flex items-center gap-2" wire:key="pm-{{ $pm->id }}-acc-{{ $idx }}">
-                                                        <input type="text"
-                                                            wire:model="paymentConfigs.{{ $pm->id }}.account_numbers.{{ $idx }}"
-                                                            placeholder="{{ __('e.g. 09171234567') }}"
-                                                            class="input input-sm w-full font-mono @error('paymentConfigs.'.$pm->id.'.account_numbers.'.$idx) input-error @enderror" />
-
-                                                        @if (count($paymentConfigs[$pm->id]['account_numbers'] ?? []) > 1)
-                                                            <button type="button"
-                                                                wire:click="removeAccountNumber({{ $pm->id }}, {{ $idx }})"
-                                                                class="btn btn-ghost btn-circle btn-xs text-error hover:bg-error/10 shrink-0"
-                                                                title="{{ __('Remove this number') }}">
-                                                                ✕
-                                                            </button>
-                                                        @endif
-                                                    </div>
-                                                    @error('paymentConfigs.'.$pm->id.'.account_numbers.'.$idx)
-                                                        <p class="label text-error text-xs">{{ $message }}</p>
-                                                    @enderror
-                                                @endforeach
-                                            </div>
-                                        </div>
-                                    </div>
-                                @endif
-                            </div>
-                        @empty
-                            <p class="text-sm text-base-content/60 py-4 text-center">
-                                {{ __('No master payment methods configured in the system. Contact superadmin.') }}
-                            </p>
-                        @endforelse
-                    </div>
-
-                    <div class="mt-6 pt-4 border-t border-base-200 flex justify-end">
-                        <button type="submit" class="btn btn-primary px-8" wire:loading.attr="disabled" wire:target="save">
-                            <span wire:loading wire:target="save" class="loading loading-spinner loading-xs"></span>
-                            <span>{{ __('Save Changes') }}</span>
-                        </button>
-                    </div>
+                    <button type="submit" class="btn btn-primary px-8 font-semibold w-full sm:w-auto shadow-xs gap-2" wire:loading.attr="disabled" wire:target="save">
+                        <span wire:loading wire:target="save" class="loading loading-spinner loading-xs"></span>
+                        <x-heroicon-o-check wire:loading.remove wire:target="save" class="w-4 h-4" />
+                        <span>{{ __('Save Changes') }}</span>
+                    </button>
                 </div>
             </div>
         </form>

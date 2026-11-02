@@ -43,6 +43,39 @@ it('allows superadmin to view payment methods index', function () {
         ->assertSee('test_bank');
 });
 
+it('supports infinite scrolling for payment methods with initial limit of 10', function () {
+    Auth::login($this->superAdmin);
+
+    PaymentMethod::factory()->count(15)->create();
+
+    $component = Livewire::test(Index::class)
+        ->assertSet('limit', 10);
+
+    expect($component->get('rows')->count())->toBe(10)
+        ->and($component->get('hasMore'))->toBeTrue();
+
+    $component->call('loadMore')
+        ->assertSet('limit', 20);
+
+    expect($component->get('rows')->count())->toBeGreaterThanOrEqual(15);
+});
+
+it('filters payment methods by search and resets limit to 10', function () {
+    Auth::login($this->superAdmin);
+
+    PaymentMethod::factory()->create(['name' => 'BDO Network Bank', 'payment_code' => 'bdo_net']);
+    PaymentMethod::factory()->count(12)->create();
+
+    $component = Livewire::test(Index::class)
+        ->call('loadMore')
+        ->assertSet('limit', 20)
+        ->set('search', 'BDO Network')
+        ->assertSet('limit', 10);
+
+    expect($component->get('rows')->count())->toBe(1)
+        ->and($component->get('rows')->first()->name)->toBe('BDO Network Bank');
+});
+
 it('allows superadmin to create a new payment method', function () {
     Auth::login($this->superAdmin);
 

@@ -26,13 +26,13 @@ class Create extends Component
 
     public ?string $phone = null;
 
-    public ?string $address = null;
-
     public ?string $description = null;
 
     public bool $is_active = true;
 
     public ?int $assigned_user_id = null;
+
+    public string $user_search = '';
 
     public bool $modal = false;
 
@@ -44,7 +44,7 @@ class Create extends Component
     #[On('open::create-organization')]
     public function open(): void
     {
-        $this->reset(['name', 'code', 'email', 'phone', 'address', 'description', 'assigned_user_id']);
+        $this->reset(['name', 'code', 'email', 'phone', 'description', 'assigned_user_id', 'user_search']);
         $this->is_active = true;
         $this->resetValidation();
         $this->modal = true;
@@ -57,7 +57,6 @@ class Create extends Component
             'code'             => ['nullable', 'string', 'max:20', Rule::unique('organizations', 'code')],
             'email'            => ['nullable', 'string', 'email', 'max:255'],
             'phone'            => ['nullable', 'string', 'max:50'],
-            'address'          => ['nullable', 'string', 'max:500'],
             'description'      => ['nullable', 'string', 'max:1000'],
             'is_active'        => ['boolean'],
             'assigned_user_id' => ['nullable', 'integer', 'exists:users,id'],
@@ -65,13 +64,39 @@ class Create extends Component
     }
 
     #[Computed]
+    public function selectedUser(): ?User
+    {
+        return $this->assigned_user_id !== null ? User::find($this->assigned_user_id) : null;
+    }
+
+    #[Computed]
     public function availableUsers(): Collection
     {
-        // Users who are not yet assigned to any organization
+        $term = mb_trim($this->user_search);
+
         return User::query()
             ->whereDoesntHave('organizations')
+            ->when($term !== '', function ($query) use ($term): void {
+                $query->where(function ($q) use ($term): void {
+                    $q->where('name', 'like', "%{$term}%")
+                        ->orWhere('email', 'like', "%{$term}%");
+                });
+            })
             ->orderBy('name')
+            ->limit(10)
             ->get();
+    }
+
+    public function selectUser(int $userId): void
+    {
+        $this->assigned_user_id = $userId;
+        $this->user_search      = '';
+    }
+
+    public function clearAssignedUser(): void
+    {
+        $this->assigned_user_id = null;
+        $this->user_search      = '';
     }
 
     public function save(): void
@@ -83,7 +108,6 @@ class Create extends Component
             'code'        => $validated['code'] ? mb_strtoupper($validated['code']) : null,
             'email'       => $validated['email'],
             'phone'       => $validated['phone'],
-            'address'     => $validated['address'],
             'description' => $validated['description'],
             'is_active'   => $validated['is_active'],
         ]);
