@@ -5,9 +5,7 @@
             <div class="breadcrumbs text-sm">
                 <ul>
                     <li class="flex items-center gap-1.5">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
-                        </svg>
+                        <x-heroicon-o-building-office class="w-4 h-4" />
                         <span>{{ __('Developer') }}</span>
                     </li>
                     <li>{{ __('Organization') }}</li>
@@ -16,9 +14,7 @@
 
             <div>
                 <button type="button" class="btn btn-primary btn-sm px-6 font-semibold" wire:click="$dispatch('open::create-organization')">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                    </svg>
+                    <x-heroicon-o-plus class="w-4 h-4" />
                     <span>{{ __('Add Organization') }}</span>
                 </button>
             </div>
@@ -39,9 +35,7 @@
                 </div>
 
                 <label class="input input-sm flex items-center gap-2 w-full sm:w-64">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 opacity-60">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-                    </svg>
+                    <x-heroicon-o-magnifying-glass class="w-4 h-4 opacity-60" />
                     <input type="search" wire:model.live.debounce.300ms="search" placeholder="{{ __('Search organizations...') }}" class="grow" />
                 </label>
             </div>
@@ -122,9 +116,7 @@
                                         <button type="button" class="btn btn-ghost btn-circle btn-sm"
                                             wire:click="$dispatch('load::organization', { 'organization' : '{{ $row->id }}' })"
                                             aria-label="{{ __('Edit organization') }}">
-                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
-                                            </svg>
+                                            <x-heroicon-o-pencil class="w-4 h-4" />
                                         </button>
                                         <livewire:organization.delete :organization="$row" :key="'del-org-'.$row->id" @deleted="$refresh" />
                                     </div>
