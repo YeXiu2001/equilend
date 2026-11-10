@@ -14,42 +14,53 @@
     name: 'light';
     default: true;
     color-scheme: light;
-    --color-primary: #0d6e78;
+    --color-primary: #85171a;
     --color-primary-content: #ffffff;
-    --color-secondary: #0e3744;
-    --color-secondary-content: #ffffff;
-    --color-accent: #1ea399;
-    --color-accent-content: #0d1927;
-    --color-neutral: #0d1927;
-    --color-neutral-content: #ffffff;
+    --color-secondary: #e5a823;
+    --color-secondary-content: #1c1917;
+    --color-accent: #f59e0b;
+    --color-accent-content: #1c1917;
+    --color-neutral: #23272e;
+    --color-neutral-content: #f8fafc;
+    --color-base-100: #ffffff;
+    --color-base-200: #f1f5f9;
+    --color-base-300: #e2e8f0;
+    --color-base-content: #1e293b;
 }
 
 @plugin 'daisyui/theme' {
     name: 'dark';
     prefersdark: true;
     color-scheme: dark;
-    --color-primary: #1ea399;
-    --color-primary-content: #091b22;
-    --color-secondary: #0d6e78;
-    --color-secondary-content: #ffffff;
-    --color-accent: #38d9cb;
-    --color-accent-content: #091b22;
-    --color-neutral: #0e3744;
-    --color-neutral-content: #f0fdfc;
+    --color-primary: #9b2226;
+    --color-primary-content: #ffffff;
+    --color-secondary: #f59e0b;
+    --color-secondary-content: #1a1a1a;
+    --color-accent: #fbbf24;
+    --color-accent-content: #0f172a;
+    --color-neutral: #181c22;
+    --color-neutral-content: #f1f5f9;
+    --color-base-100: #1e242c;
+    --color-base-200: #12161a;
+    --color-base-300: #2d3540;
+    --color-base-content: #f1f5f9;
 }
 
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
-    --color-primary-50: #f0f9fb;
-    --color-primary-100: #d8eff4;
-    --color-primary-200: #b0dee8;
-    --color-primary-300: #7cc4d5;
-    --color-primary-400: #4da7bd;
-    --color-primary-500: #0d6e78;
-    --color-primary-600: #0e3744;
-    --color-primary-700: #0d1927;
-    --color-primary-800: #07131f;
-    --color-primary-900: #040c14;
-    --color-primary-950: #02070c;
-    --color-sectheme: #1ea399;
+    --color-primary-50: #fdf3f3;
+    --color-primary-100: #fbe6e6;
+    --color-primary-200: #f7cfd1;
+    --color-primary-300: #f0abae;
+    --color-primary-400: #e5787d;
+    --color-primary-500: #d34b52;
+    --color-primary-600: #b93138;
+    --color-primary-700: #9b2226;
+    --color-primary-800: #85171a;
+    --color-primary-900: #701618;
+    --color-primary-950: #3e0709;
+    --color-gold-header: #f4c430;
+    --color-gold-accent: #e5a823;
+    --color-sidebar-dark: #23272e;
+    --color-sidebar-darker: #1c2025;
 }

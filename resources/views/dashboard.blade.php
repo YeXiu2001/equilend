@@ -1,40 +1,110 @@
 <x-app-layout>
-    <div class="card bg-base-100 card-border border-base-300 shadow-xs">
-        <div class="card-body">
-            <h2 class="card-title border-b border-base-200 pb-3 mb-2">Welcome to Equilend</h2>
+    <div class="space-y-6">
+        <!-- Top Welcome & Quote Bar (Inspired by Reference Photo 1) -->
+        <div class="bg-base-100 rounded-xl p-5 shadow-xs border border-base-300">
+            <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-base-content">
+                Welcome back, <span class="text-primary">{{ auth()->user()->name }}</span>!
+            </h1>
+            <p class="text-xs sm:text-sm text-base-content/70 italic mt-1">
+                "The secret of change is to focus all of your energy, not on fighting the old but on building the new." &mdash; <span class="font-medium text-base-content/85">Socrates</span>
+            </p>
+        </div>
 
-            <div class="space-y-3 text-sm text-base-content/90">
-                <p>
-                    👋🏻 Welcome to <strong>Equilend</strong>, built with Laravel 13, Livewire 4, Tailwind CSS 4, and daisyUI 5.
-                </p>
-                <div class="mt-4 space-y-2">
-                    <i class="text-base-content/70">
-                        "What this stack includes out of the box?"
-                    </i>
-                    <ul class="ml-2 mt-2 list-inside list-decimal font-semibold space-y-1">
-                        <li>Laravel v13</li>
-                        <li>Livewire v4</li>
-                        <li>daisyUI v5</li>
-                        <li>TailwindCSS v4</li>
-                    </ul>
-                    <p class="pt-2">And also:</p>
-                    <ul class="ml-2 mt-2 list-inside list-decimal font-semibold space-y-1">
-                        <li><a href="https://github.com/barryvdh/laravel-debugbar" target="_blank" class="link link-hover">DebugBar</a></li>
-                        <li><a href="https://github.com/larastan/larastan" target="_blank" class="link link-hover">LaraStan</a></li>
-                        <li><a href="https://pestphp.com/" target="_blank" class="link link-hover">Pest</a></li>
-                        <li><a href="https://laravel.com/docs/pint" target="_blank" class="link link-hover">Pint</a></li>
-                    </ul>
+        <!-- Quick Action / Shortcut Cards Grid (Inspired by Reference Grid) -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+            <a href="{{ route('dashboard') }}" class="flex flex-col items-center justify-center p-4 rounded-xl bg-base-100 border border-base-300 hover:border-primary hover:shadow-sm transition-all group text-center">
+                <div class="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                    <x-heroicon-o-home class="w-5 h-5" />
                 </div>
+                <span class="text-xs font-semibold text-base-content group-hover:text-primary">Dashboard</span>
+            </a>
 
-                <div class="pt-2">
-                    <a href="https://daisyui.com" target="_blank" class="btn btn-primary btn-sm">daisyUI v5</a>
+            <a href="{{ route('inventory.index') }}" class="flex flex-col items-center justify-center p-4 rounded-xl bg-base-100 border border-base-300 hover:border-primary hover:shadow-sm transition-all group text-center">
+                <div class="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                    <x-heroicon-o-archive-box class="w-5 h-5" />
+                </div>
+                <span class="text-xs font-semibold text-base-content group-hover:text-primary">Inventory</span>
+            </a>
+
+            <a href="#" class="flex flex-col items-center justify-center p-4 rounded-xl bg-base-100 border border-base-300 hover:border-primary hover:shadow-sm transition-all group text-center">
+                <div class="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                    <x-heroicon-o-clock class="w-5 h-5" />
+                </div>
+                <span class="text-xs font-semibold text-base-content group-hover:text-primary">Loan History</span>
+            </a>
+
+            <a href="{{ route('organization.settings') }}" class="flex flex-col items-center justify-center p-4 rounded-xl bg-base-100 border border-base-300 hover:border-primary hover:shadow-sm transition-all group text-center">
+                <div class="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                    <x-heroicon-o-cog-6-tooth class="w-5 h-5" />
+                </div>
+                <span class="text-xs font-semibold text-base-content group-hover:text-primary">Settings</span>
+            </a>
+
+            <a href="{{ route('user.profile') }}" class="flex flex-col items-center justify-center p-4 rounded-xl bg-base-100 border border-base-300 hover:border-primary hover:shadow-sm transition-all group text-center">
+                <div class="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                    <x-heroicon-o-user class="w-5 h-5" />
+                </div>
+                <span class="text-xs font-semibold text-base-content group-hover:text-primary">Profile</span>
+            </a>
+
+            <a href="{{ route('users.index') }}" class="flex flex-col items-center justify-center p-4 rounded-xl bg-base-100 border border-base-300 hover:border-primary hover:shadow-sm transition-all group text-center">
+                <div class="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                    <x-heroicon-o-users class="w-5 h-5" />
+                </div>
+                <span class="text-xs font-semibold text-base-content group-hover:text-primary">Users</span>
+            </a>
+        </div>
+
+        <!-- 2 Column Information Panels (Inspired by Announcements & Helpful Links) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <!-- Announcements Card -->
+            <div class="card bg-base-100 card-border border-base-300 shadow-xs border-t-4 border-t-primary">
+                <div class="card-body p-5">
+                    <div class="flex items-center gap-2 font-bold text-sm text-base-content border-b border-base-200 pb-3">
+                        <x-heroicon-o-megaphone class="w-4 h-4 text-primary" />
+                        <span>Announcements</span>
+                    </div>
+                    <ul class="space-y-3 pt-2 text-xs text-base-content/85">
+                        <li class="flex items-start gap-2">
+                            <span class="badge badge-xs badge-primary mt-1">New</span>
+                            <div>
+                                <span class="font-semibold">Equilend Design System Updated:</span>
+                                <p class="text-base-content/70">Modernized UI styling, institutional crimson and amber palette, and quick navigation.</p>
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="badge badge-xs badge-neutral mt-1">Info</span>
+                            <div>
+                                <span class="font-semibold">Equipment Inventory Active:</span>
+                                <p class="text-base-content/70">Check out the asset management section to track and manage loans.</p>
+                            </div>
+                        </li>
+                    </ul>
                 </div>
             </div>
 
-            <div class="card-actions pt-4 border-t border-base-200 mt-4">
-                <span class="text-xs text-base-content/70">
-                    ⚠️ <a href="https://daisyui.com/docs/v5/" target="_blank" class="link link-primary font-semibold">Make sure to read the docs about daisyUI v5!</a>
-                </span>
+            <!-- Helpful Links & System Info -->
+            <div class="card bg-base-100 card-border border-base-300 shadow-xs border-t-4 border-t-secondary">
+                <div class="card-body p-5">
+                    <div class="flex items-center gap-2 font-bold text-sm text-base-content border-b border-base-200 pb-3">
+                        <x-heroicon-o-information-circle class="w-4 h-4 text-secondary" />
+                        <span>System Quick Links</span>
+                    </div>
+                    <div class="space-y-2 pt-2 text-xs text-base-content/85">
+                        <div class="flex items-center justify-between py-1.5 border-b border-base-200/60">
+                            <span class="text-base-content/70">Framework Stack</span>
+                            <span class="font-semibold">Laravel 13 • Livewire 4 • daisyUI 5</span>
+                        </div>
+                        <div class="flex items-center justify-between py-1.5 border-b border-base-200/60">
+                            <span class="text-base-content/70">Current User</span>
+                            <span class="font-mono text-primary font-medium">{{ auth()->user()->email }}</span>
+                        </div>
+                        <div class="flex items-center justify-between py-1.5">
+                            <span class="text-base-content/70">Role Status</span>
+                            <span class="badge badge-sm badge-secondary font-semibold">{{ ucfirst(auth()->user()->roles->first()?->name ?? 'Member') }}</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

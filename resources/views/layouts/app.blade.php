@@ -20,21 +20,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ config('app.name', 'Laravel') }}</title>
+    <title>{{ config('app.name', 'Equilend') }}</title>
 
     <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+    <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700&display=swap" rel="stylesheet" />
 
     @livewireStyles
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>[x-cloak] { display: none !important; }</style>
 </head>
 
-<body class="font-sans antialiased bg-base-200 text-base-content"
+<body class="font-sans antialiased bg-base-200 text-base-content min-h-screen flex flex-col"
     x-cloak
     x-data="{
-        name: @js(auth()->user()->name),
-        email: @js(auth()->user()->email),
+        name: @js(auth()->user()?->name),
+        email: @js(auth()->user()?->email),
+        role: @js(auth()->user()?->roles->first()?->name ? ucfirst(auth()->user()->roles->first()->name) : 'Member'),
+        picDir: @js(auth()->user()?->pic_url),
         toasts: [],
         dialog: {
             open: false,
@@ -83,7 +85,7 @@
             this.dialog.open = false;
         }
     }"
-    x-on:name-updated.window="name = $event.detail.name"
+    x-on:name-updated.window="name = $event.detail.name; if ($event.detail.pic_dir !== undefined) { picDir = $event.detail.pic_dir; }"
     x-on:alert:dialog.window="handleAlert($event.detail)">
 
     <!-- Toast Notifications -->
@@ -120,76 +122,137 @@
         </form>
     </dialog>
 
-    <!-- App Drawer Layout -->
-    <div class="drawer lg:drawer-open">
-        <input id="app-drawer" type="checkbox" class="drawer-toggle" />
+    <!-- Top Navbar (Institutional Crimson Maroon Bar) -->
+    <header class="navbar bg-primary text-primary-content h-16 min-h-16 sticky top-0 z-30 px-3 sm:px-4 shadow-sm border-b border-black/10 select-none">
+        <div class="flex-none flex items-center gap-2 sm:gap-3">
+            <!-- Brand Badge (Replaces reference 'myIIT' badge with Equilend) -->
+            <a href="{{ route('dashboard') }}" class="flex items-center gap-2 bg-white text-primary px-2.5 py-1 rounded-md font-bold shadow-xs hover:bg-slate-100 transition-colors">
+                <img src="{{ asset('/assets/images/tsui.png') }}" class="w-5 h-5 object-contain" alt="{{ config('app.name', 'Equilend') }}" />
+                <span class="text-xs sm:text-sm font-extrabold tracking-wide uppercase">{{ config('app.name', 'Equilend') }}</span>
+            </a>
 
-        <div class="drawer-content flex flex-col min-h-screen">
-            <!-- Top Navbar -->
-            <header class="navbar bg-base-100/90 backdrop-blur-md border-b border-base-300/80 px-4 h-16 min-h-16 sticky top-0 z-30">
-                <div class="flex-none flex items-center gap-2">
-                    <!-- Mobile Drawer Trigger -->
-                    <label for="app-drawer" aria-label="open sidebar" class="btn btn-square btn-ghost btn-sm lg:hidden">
-                        <x-heroicon-o-bars-3 class="inline-block h-5 w-5 stroke-current" />
-                    </label>
+            <!-- Mobile Drawer Trigger -->
+            <label for="app-drawer" aria-label="open sidebar" class="btn btn-square btn-ghost btn-sm lg:hidden text-white hover:bg-white/10">
+                <x-heroicon-o-bars-3 class="w-5 h-5 stroke-current" />
+            </label>
 
-                    <!-- Desktop Collapse Trigger -->
-                    <button type="button" x-on:click="toggleSidebar()" class="btn btn-square btn-ghost btn-sm hidden lg:inline-flex text-base-content/70 hover:text-base-content" aria-label="Toggle sidebar">
-                        <x-heroicon-o-bars-3-bottom-left x-show="!sidebarCollapsed" class="w-5 h-5" />
-                        <x-heroicon-o-bars-3 x-show="sidebarCollapsed" class="w-5 h-5" />
-                    </button>
-                </div>
+            <!-- Desktop Collapse Trigger -->
+            <button type="button" x-on:click="toggleSidebar()" class="btn btn-square btn-ghost btn-sm hidden lg:inline-flex text-white hover:bg-white/10" aria-label="Toggle sidebar">
+                <x-heroicon-o-bars-3-bottom-left x-show="!sidebarCollapsed" class="w-5 h-5" />
+                <x-heroicon-o-bars-3 x-show="sidebarCollapsed" class="w-5 h-5" />
+            </button>
+        </div>
 
-                <div class="flex-1"></div>
+        <div class="flex-1"></div>
 
-                <div class="flex-none flex items-center gap-2">
-                    <!-- Theme Switcher -->
-                    <button type="button" class="btn btn-ghost btn-circle btn-sm text-base-content/70 hover:text-base-content" x-on:click="toggleTheme()" aria-label="Toggle theme">
-                        <x-heroicon-o-moon x-show="theme === 'light'" class="w-5 h-5" />
-                        <x-heroicon-o-sun x-show="theme === 'dark'" class="w-5 h-5" />
-                    </button>
-
-                    <!-- User Dropdown -->
-                    <div class="dropdown dropdown-end">
-                        <div tabindex="0" role="button" class="btn btn-ghost btn-sm gap-2 px-2 rounded-full hover:bg-base-200">
-                            <div class="avatar avatar-placeholder">
-                                <div class="bg-primary text-primary-content w-7 rounded-full text-xs font-bold">
-                                    <span x-text="name ? name.charAt(0).toUpperCase() : 'U'"></span>
-                                </div>
-                            </div>
-                            <span class="font-medium text-sm hidden sm:inline" x-text="`Hello, ${name}!`"></span>
-                            <x-heroicon-o-chevron-down class="w-3.5 h-3.5 opacity-60" />
-                        </div>
-                        <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-50 mt-2 w-56 p-2 shadow-xl border border-base-300/80">
-                            <li class="px-3 py-2 border-b border-base-200 mb-1 pointer-events-none">
-                                <div class="flex flex-col gap-0.5 p-0">
-                                    <span class="font-semibold text-xs text-base-content truncate" x-text="name"></span>
-                                    <span class="text-[11px] text-base-content/60 truncate" x-text="email"></span>
-                                </div>
-                            </li>
-                            <li>
-                                <a href="{{ route('user.profile') }}" class="flex items-center gap-2.5 rounded-lg py-2">
-                                    <x-heroicon-o-user class="w-4 h-4 opacity-70" />
-                                    <span>{{ __('Profile') }}</span>
-                                </a>
-                            </li>
-                            <div class="divider my-1"></div>
-                            <li>
-                                <form method="POST" action="{{ route('logout') }}" class="p-0">
-                                    @csrf
-                                    <button type="submit" class="w-full flex items-center gap-2.5 text-left px-3 py-2 text-error hover:bg-error/10 rounded-lg">
-                                        <x-heroicon-o-arrow-right-on-rectangle class="w-4 h-4" />
-                                        <span>{{ __('Logout') }}</span>
-                                    </button>
-                                </form>
-                            </li>
-                        </ul>
+        <!-- Right Header Items: Strictly Notification Bell and User Name Profile Trigger -->
+        <div class="flex-none flex items-center gap-2 sm:gap-3">
+            <!-- Notification Bell Icon -->
+            <div class="dropdown dropdown-end">
+                <button tabindex="0" role="button" class="btn btn-ghost btn-circle btn-sm text-white hover:bg-white/10 relative" aria-label="Notifications">
+                    <x-heroicon-o-bell class="w-5 h-5" />
+                    <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-secondary ring-2 ring-primary"></span>
+                </button>
+                <div tabindex="0" class="dropdown-content menu bg-base-100 text-base-content rounded-box z-50 mt-2 w-72 p-3 shadow-xl border border-base-300">
+                    <div class="flex items-center justify-between border-b border-base-200 pb-2 mb-2">
+                        <span class="font-bold text-xs uppercase tracking-wider text-base-content/80">Notifications</span>
+                        <span class="badge badge-xs badge-secondary font-medium">0 Unread</span>
+                    </div>
+                    <div class="py-6 text-center text-xs text-base-content/60">
+                        <x-heroicon-o-bell-slash class="w-7 h-7 mx-auto mb-1.5 opacity-40 text-base-content" />
+                        No new notifications
                     </div>
                 </div>
-            </header>
+            </div>
 
-            <!-- Main Content -->
-            <main class="flex-1 p-6">
+            <!-- User Profile Dropdown (Mirroring Reference Photo 2) -->
+            <div class="dropdown dropdown-end">
+                <div tabindex="0" role="button" class="btn btn-ghost btn-sm gap-2 px-2 text-white hover:bg-white/10 rounded-lg">
+                    <div class="avatar" :class="{ 'avatar-placeholder': !picDir }">
+                        <template x-if="picDir">
+                            <div class="w-7 h-7 rounded-full border border-white/30 overflow-hidden">
+                                <img :src="picDir" :alt="name" class="w-full h-full object-cover" />
+                            </div>
+                        </template>
+                        <template x-if="!picDir">
+                            <div class="bg-white/20 text-white border border-white/30 w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center">
+                                <span x-text="name ? name.charAt(0).toUpperCase() : 'U'"></span>
+                            </div>
+                        </template>
+                    </div>
+                    <span class="font-semibold text-xs sm:text-sm tracking-wide uppercase text-white truncate max-w-48 hidden sm:inline" x-text="name"></span>
+                    <x-heroicon-o-chevron-down class="w-3.5 h-3.5 opacity-80" />
+                </div>
+
+                <!-- Dropdown Card with Golden Yellow Header -->
+                <div tabindex="0" class="dropdown-content bg-base-100 rounded-2xl z-50 mt-2 w-80 shadow-2xl border border-base-300 overflow-hidden p-0 text-base-content">
+                    <!-- Golden Yellow Header Banner -->
+                    <div class="bg-[#f4c430] dark:bg-amber-500 text-slate-900 p-6 flex flex-col items-center justify-center text-center relative select-none">
+                        <div class="avatar" :class="{ 'avatar-placeholder': !picDir }">
+                            <template x-if="picDir">
+                                <div class="w-20 h-20 rounded-full bg-white shadow-md border-2 border-white/90 ring-4 ring-amber-300/60 overflow-hidden">
+                                    <img :src="picDir" :alt="name" class="w-full h-full object-cover" />
+                                </div>
+                            </template>
+                            <template x-if="!picDir">
+                                <div class="w-20 h-20 rounded-full bg-white shadow-md flex items-center justify-center text-amber-700 font-bold text-2xl border-2 border-white/90 ring-4 ring-amber-300/60">
+                                    <span x-text="name ? name.charAt(0).toUpperCase() : 'U'"></span>
+                                </div>
+                            </template>
+                        </div>
+                        <h3 class="font-bold text-sm tracking-wide uppercase text-slate-900 mt-3 truncate max-w-full px-2" x-text="name"></h3>
+                        <p class="text-xs font-semibold text-slate-800/80 mt-0.5" x-text="role"></p>
+                    </div>
+
+                    <!-- Lower Card Content -->
+                    <div class="p-4 space-y-3 bg-base-100">
+                        <!-- Email Container with Mail Icon -->
+                        <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-base-200 border border-base-300 text-xs text-base-content/85 select-all overflow-hidden">
+                            <x-heroicon-o-envelope class="w-4 h-4 text-primary shrink-0" />
+                            <span class="truncate font-mono" x-text="email"></span>
+                        </div>
+
+                        <!-- Profile & Settings Action Buttons -->
+                        <div class="grid grid-cols-2 gap-2 pt-1">
+                            <a href="{{ route('user.profile') }}" class="btn btn-outline btn-sm font-medium gap-1.5 border-base-300 hover:border-primary hover:bg-primary hover:text-white">
+                                <x-heroicon-o-user class="w-3.5 h-3.5" />
+                                <span>{{ __('Profile') }}</span>
+                            </a>
+                            <a href="{{ route('organization.settings') }}" class="btn btn-outline btn-sm font-medium gap-1.5 border-base-300 hover:border-primary hover:bg-primary hover:text-white">
+                                <x-heroicon-o-cog-6-tooth class="w-3.5 h-3.5" />
+                                <span>{{ __('Settings') }}</span>
+                            </a>
+                        </div>
+
+                        <!-- Theme Switcher & Logout Footer -->
+                        <div class="flex items-center justify-between pt-2 border-t border-base-200">
+                            <button type="button" x-on:click="toggleTheme()" class="btn btn-ghost btn-xs gap-1.5 text-base-content/70 hover:text-base-content">
+                                <x-heroicon-o-moon x-show="theme === 'light'" class="w-3.5 h-3.5" />
+                                <x-heroicon-o-sun x-show="theme === 'dark'" class="w-3.5 h-3.5" />
+                                <span x-text="theme === 'dark' ? 'Light mode' : 'Dark mode'"></span>
+                            </button>
+
+                            <form method="POST" action="{{ route('logout') }}" class="inline">
+                                @csrf
+                                <button type="submit" class="btn btn-error btn-outline btn-xs font-medium gap-1">
+                                    <x-heroicon-o-arrow-right-on-rectangle class="w-3.5 h-3.5" />
+                                    <span>{{ __('Logout') }}</span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- App Drawer Layout -->
+    <div class="drawer lg:drawer-open flex-1">
+        <input id="app-drawer" type="checkbox" class="drawer-toggle" />
+
+        <div class="drawer-content flex flex-col flex-1 bg-base-200">
+            <!-- Main Content Canvas -->
+            <main class="flex-1 p-4 sm:p-6 max-w-7xl w-full mx-auto">
                 {{ $slot }}
             </main>
         </div>

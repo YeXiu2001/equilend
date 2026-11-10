@@ -89,39 +89,71 @@
 <div class="drawer-side z-40">
     <label for="app-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
 
-    <aside class="bg-base-100 border-r border-base-300/80 min-h-full flex flex-col transition-all duration-300 ease-in-out select-none w-68"
-        x-bind:class="sidebarCollapsed ? 'lg:w-20' : 'lg:w-68'">
+    <aside class="bg-[#22272e] text-slate-200 border-r border-[#1a1e23] min-h-full flex flex-col transition-all duration-300 ease-in-out select-none shadow-xl w-64"
+        x-bind:class="sidebarCollapsed ? 'lg:w-20' : 'lg:w-64'">
 
-        <!-- Brand Header -->
-        <div class="h-16 min-h-16 px-4 border-b border-base-200/80 flex items-center justify-between gap-3">
-            <a href="{{ route('dashboard') }}" class="flex items-center gap-3 overflow-hidden"
-                x-bind:class="sidebarCollapsed ? 'lg:justify-center lg:w-full' : ''">
-                <div class="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs">
-                    <img src="{{ asset('/assets/images/tsui.png') }}" class="w-6 h-6 object-contain" alt="{{ config('app.name', 'Equilend') }}" />
-                </div>
-                <div class="flex flex-col leading-tight truncate" x-show="!sidebarCollapsed" x-transition.opacity>
-                    <span class="font-bold text-base tracking-tight text-base-content">{{ config('app.name', 'Equilend') }}</span>
-                    <span class="text-[11px] font-medium text-base-content/50">Equipment Portal</span>
-                </div>
-            </a>
-
-            <!-- Close button on mobile -->
-            <label for="app-drawer" aria-label="close sidebar" class="btn btn-ghost btn-square btn-xs lg:hidden text-base-content/60">
+        <!-- Mobile Header with Close Button -->
+        <div class="lg:hidden flex items-center justify-between px-4 py-3 border-b border-slate-700/60">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-300">Navigation</span>
+            <label for="app-drawer" aria-label="close sidebar" class="btn btn-ghost btn-square btn-xs text-slate-400 hover:text-white">
                 <x-heroicon-o-x-mark class="w-4 h-4" />
             </label>
         </div>
 
+        <!-- Sidebar Top Profile Card (Mirroring Reference Photo 1) -->
+        <div class="border-b border-slate-700/60"
+            x-bind:class="sidebarCollapsed ? 'py-4 flex flex-col items-center' : 'pt-6 pb-5 px-4 flex flex-col items-center'">
+
+            <!-- Expanded State Profile Details -->
+            <template x-if="!sidebarCollapsed">
+                <a href="{{ route('user.profile') }}" class="flex flex-col items-center w-full group cursor-pointer" title="{{ __('View Profile') }}">
+                    <div class="avatar avatar-placeholder mb-2" :class="{ 'avatar-placeholder': !picDir }">
+                        <template x-if="picDir">
+                            <div class="w-20 h-20 rounded-full border-2 border-slate-500/60 shadow-md ring-4 ring-slate-800/80 overflow-hidden group-hover:ring-amber-400/70 transition-all">
+                                <img :src="picDir" :alt="name" class="w-full h-full object-cover" />
+                            </div>
+                        </template>
+                        <template x-if="!picDir">
+                            <div class="w-20 h-20 rounded-full bg-slate-700/90 border-2 border-slate-500/60 shadow-md text-slate-100 text-2xl font-bold flex items-center justify-center ring-4 ring-slate-800/80 group-hover:ring-amber-400/70 transition-all">
+                                <span x-text="name ? name.charAt(0).toUpperCase() : 'U'"></span>
+                            </div>
+                        </template>
+                    </div>
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-100 text-center truncate w-full px-2 group-hover:text-amber-400 transition-colors" x-text="name"></span>
+                    <span class="text-[11px] font-semibold text-amber-400 mt-0.5 text-center truncate w-full px-2" x-text="role"></span>
+                </a>
+            </template>
+
+            <!-- Collapsed State Profile Details -->
+            <template x-if="sidebarCollapsed">
+                <div class="hidden lg:flex items-center justify-center w-full">
+                    <a href="{{ route('user.profile') }}" class="avatar avatar-placeholder group cursor-pointer" :class="{ 'avatar-placeholder': !picDir }" :title="name">
+                        <template x-if="picDir">
+                            <div class="w-10 h-10 rounded-full border border-slate-500/60 overflow-hidden group-hover:border-amber-400 transition-colors">
+                                <img :src="picDir" :alt="name" class="w-full h-full object-cover" />
+                            </div>
+                        </template>
+                        <template x-if="!picDir">
+                            <div class="w-10 h-10 rounded-full bg-slate-700/90 border border-slate-500/60 text-slate-100 text-sm font-bold flex items-center justify-center group-hover:border-amber-400 transition-colors">
+                                <span x-text="name ? name.charAt(0).toUpperCase() : 'U'"></span>
+                            </div>
+                        </template>
+                    </a>
+                </div>
+            </template>
+        </div>
+
         <!-- Navigation Menu -->
-        <nav class="flex-1 overflow-y-auto overflow-x-hidden px-3 py-4 space-y-5">
+        <nav class="flex-1 overflow-y-auto overflow-x-hidden px-3 py-4 space-y-4">
             @foreach ($navGroups as $group)
                 <div class="space-y-1">
                     <!-- Section Header -->
-                    <div class="px-3 mb-1.5 flex items-center"
+                    <div class="px-3 mb-1 flex items-center"
                         x-bind:class="sidebarCollapsed ? 'lg:justify-center lg:px-0' : ''">
-                        <span x-show="!sidebarCollapsed" class="text-[11px] font-semibold uppercase tracking-wider text-base-content/45">
+                        <span x-show="!sidebarCollapsed" class="text-[10px] font-bold uppercase tracking-wider text-slate-400/60">
                             {{ $group['title'] }}
                         </span>
-                        <span x-show="sidebarCollapsed" class="hidden lg:block w-5 h-px bg-base-300 my-1" title="{{ $group['title'] }}"></span>
+                        <span x-show="sidebarCollapsed" class="hidden lg:block w-5 h-px bg-slate-700/60 my-1" title="{{ $group['title'] }}"></span>
                     </div>
 
                     <!-- Group Items -->
@@ -131,16 +163,16 @@
                                 <div x-bind:class="sidebarCollapsed ? 'lg:tooltip lg:tooltip-right w-full' : 'w-full'" data-tip="{{ $item['label'] }}">
                                     <a href="{{ $item['href'] }}"
                                         @class([
-                                            'group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150',
-                                            'bg-primary text-primary-content shadow-xs shadow-primary/20' => $item['active'],
-                                            'text-base-content/75 hover:bg-base-200/80 hover:text-base-content' => ! $item['active'],
+                                            'group relative flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-colors duration-150',
+                                            'text-amber-400 bg-amber-400/10 font-semibold border-l-2 border-amber-400' => $item['active'],
+                                            'text-slate-300 hover:text-white hover:bg-white/5 border-l-2 border-transparent' => ! $item['active'],
                                         ])
-                                        x-bind:class="sidebarCollapsed ? 'lg:justify-center lg:px-0' : ''">
+                                        x-bind:class="sidebarCollapsed ? 'lg:justify-center lg:px-0 lg:border-l-0' : ''">
                                         <x-icon :name="$item['icon']"
                                             @class([
-                                                'w-5 h-5 shrink-0 transition-transform duration-150 group-hover:scale-105',
-                                                'text-primary-content' => $item['active'],
-                                                'text-base-content/60 group-hover:text-primary' => ! $item['active'],
+                                                'w-4 h-4 shrink-0 transition-transform duration-150 group-hover:scale-105',
+                                                'text-amber-400' => $item['active'],
+                                                'text-slate-400 group-hover:text-slate-200' => ! $item['active'],
                                             ]) />
 
                                         <span class="truncate" x-show="!sidebarCollapsed" x-transition.opacity>
@@ -148,7 +180,7 @@
                                         </span>
 
                                         @if ($item['active'])
-                                            <span x-show="!sidebarCollapsed" class="ml-auto w-1.5 h-1.5 rounded-full bg-primary-content/90"></span>
+                                            <span x-show="!sidebarCollapsed" class="ml-auto w-1.5 h-1.5 rounded-full bg-amber-400"></span>
                                         @endif
                                     </a>
                                 </div>
@@ -159,29 +191,16 @@
             @endforeach
         </nav>
 
-        <!-- Sidebar Footer User Card -->
-        <div class="p-3 border-t border-base-200/80 bg-base-200/30">
-            <div class="flex items-center gap-3 p-2 rounded-xl bg-base-100 border border-base-300/60 shadow-2xs"
-                x-bind:class="sidebarCollapsed ? 'lg:justify-center lg:p-1.5' : ''">
-                <a href="{{ route('user.profile') }}" class="flex items-center gap-2.5 min-w-0 flex-1"
-                    x-bind:class="sidebarCollapsed ? 'lg:justify-center lg:flex-none' : ''"
-                    title="{{ __('View Profile') }}">
-                    <div class="avatar avatar-placeholder shrink-0">
-                        <div class="bg-primary/15 text-primary border border-primary/20 w-8 h-8 rounded-lg text-xs font-bold">
-                            <span x-text="name ? name.charAt(0).toUpperCase() : 'U'"></span>
-                        </div>
-                    </div>
-                    <div class="flex flex-col min-w-0 flex-1" x-show="!sidebarCollapsed" x-transition.opacity>
-                        <span class="text-xs font-semibold text-base-content truncate" x-text="name"></span>
-                        <span class="text-[11px] text-base-content/55 truncate" x-text="email"></span>
-                    </div>
-                </a>
-
+        <!-- Sidebar Footer Action -->
+        <div class="p-3 border-t border-slate-700/60 bg-slate-900/40">
+            <div class="flex items-center justify-between text-xs text-slate-400 px-2"
+                x-bind:class="sidebarCollapsed ? 'lg:justify-center lg:px-0' : ''">
+                <span class="text-[11px] font-mono opacity-60" x-show="!sidebarCollapsed">Equilend v1.0</span>
                 <button type="button" x-on:click="toggleSidebar()"
-                    class="btn btn-ghost btn-square btn-xs hidden lg:inline-flex text-base-content/50 hover:text-base-content shrink-0"
-                    x-show="!sidebarCollapsed"
-                    title="Collapse sidebar">
-                    <x-heroicon-o-chevron-left class="w-4 h-4" />
+                    class="btn btn-ghost btn-square btn-xs hidden lg:inline-flex text-slate-400 hover:text-white"
+                    title="Toggle sidebar">
+                    <x-heroicon-o-chevron-left x-show="!sidebarCollapsed" class="w-3.5 h-3.5" />
+                    <x-heroicon-o-chevron-right x-show="sidebarCollapsed" class="w-3.5 h-3.5" />
                 </button>
             </div>
         </div>
