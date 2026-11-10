@@ -1,4 +1,4 @@
-<div @updated="$dispatch('name-updated', { name: $event.detail.name })" x-data="{ activeTab: 'profile' }">
+<div @updated="$dispatch('name-updated', { name: $event.detail.name, pic_dir: $event.detail.pic_dir })" x-data="{ activeTab: 'profile' }">
     <div class="card bg-base-100 card-border border-base-300 shadow-xs">
         <div class="card-body">
             <div role="tablist" class="tabs tabs-border border-b border-base-200 mb-4 overflow-x-auto">

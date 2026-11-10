@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Spatie\Permission\Traits\HasRoles;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -22,6 +23,11 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'pic_dir',
+    ];
+
+    protected $appends = [
+        'pic_url',
     ];
 
     protected $hidden = [
@@ -70,5 +76,21 @@ class User extends Authenticatable
     public function hasOrganization(): bool
     {
         return $this->organizations()->exists();
+    }
+
+    /**
+     * Get the URL to the user's profile photo.
+     */
+    public function getPicUrlAttribute(): ?string
+    {
+        if (! $this->pic_dir) {
+            return null;
+        }
+
+        if (filter_var($this->pic_dir, FILTER_VALIDATE_URL)) {
+            return $this->pic_dir;
+        }
+
+        return Storage::disk('public')->url($this->pic_dir);
     }
 }

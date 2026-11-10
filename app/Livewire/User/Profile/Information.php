@@ -8,17 +8,23 @@ use Exception;
 use App\Models\User;
 use Livewire\Component;
 use Livewire\Attributes\On;
+use Livewire\WithFileUploads;
 use App\Livewire\Traits\Alert;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\Storage;
 
 class Information extends Component
 {
     use Alert;
+    use WithFileUploads;
 
     public User $user;
 
+    public mixed $photo = null;
+
     protected array $validationAttributes = [
         'user.name' => 'Name',
+        'photo'     => 'Profile photo',
     ];
 
     #[On('mount')]
@@ -35,6 +41,11 @@ class Information extends Component
                 'string',
                 'max:255',
             ],
+            'photo' => [
+                'nullable',
+                'image',
+                'max:2048',
+            ],
         ];
     }
 
@@ -48,10 +59,41 @@ class Information extends Component
         $this->validate();
 
         try {
+            if ($this->photo) {
+                if ($this->user->pic_dir && Storage::disk('public')->exists($this->user->pic_dir)) {
+                    Storage::disk('public')->delete($this->user->pic_dir);
+                }
+
+                $this->user->pic_dir = $this->photo->store('profiles', 'public');
+                $this->photo         = null;
+            }
+
             $this->user->save();
 
-            $this->dispatch('updated', name: $this->user->name);
+            $this->dispatch('updated', name: $this->user->name, pic_dir: $this->user->pic_url);
             $this->success();
+
+            return;
+        } catch (Exception $e) {
+            report($e);
+        }
+
+        $this->error();
+    }
+
+    public function removePhoto(): void
+    {
+        try {
+            if ($this->user->pic_dir && Storage::disk('public')->exists($this->user->pic_dir)) {
+                Storage::disk('public')->delete($this->user->pic_dir);
+            }
+
+            $this->user->pic_dir = null;
+            $this->user->save();
+            $this->photo = null;
+
+            $this->dispatch('updated', name: $this->user->name, pic_dir: null);
+            $this->success('Profile photo removed.');
 
             return;
         } catch (Exception $e) {
