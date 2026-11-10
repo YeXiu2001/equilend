@@ -250,9 +250,9 @@
     <div class="drawer lg:drawer-open flex-1">
         <input id="app-drawer" type="checkbox" class="drawer-toggle" />
 
-        <div class="drawer-content flex flex-col flex-1 bg-base-200">
+        <div class="drawer-content flex flex-col flex-1 bg-base-200 min-w-0">
             <!-- Main Content Canvas -->
-            <main class="flex-1 p-4 sm:p-6 max-w-7xl w-full mx-auto">
+            <main class="flex-1 p-1 sm:p-2 w-full min-w-0">
                 {{ $slot }}
             </main>
         </div>

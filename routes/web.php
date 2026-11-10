@@ -8,7 +8,7 @@ use App\Livewire\User\Profile;
 use App\Livewire\PaymentMethods;
 use Illuminate\Support\Facades\Route;
 
-Route::redirect('/', '/login');
+Route::redirect('/', '/login')->name('welcome');
 
 Route::middleware(['auth'])->group(function () {
     Route::view('/dashboard', 'dashboard')->name('dashboard');

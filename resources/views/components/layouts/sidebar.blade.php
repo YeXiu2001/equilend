@@ -1,4 +1,8 @@
 @php
+    $user = auth()->user();
+    $isSuperAdmin = (bool) $user?->hasRole('superadmin');
+    $isStaff = $isSuperAdmin || (bool) $user?->hasRole('organization_admin');
+
     $navGroups = [
         [
             'title' => 'Main Menu',
@@ -12,29 +16,153 @@
             ],
         ],
         [
-            'title' => 'Asset Management',
+            'title' => 'Borrower Portal',
             'items' => [
                 [
-                    'label'  => 'Inventory',
+                    'label'  => 'Browse Equipment',
                     'href'   => route('inventory.index'),
-                    'active' => request()->routeIs('inventory.*'),
-                    'icon'   => 'heroicon-o-archive-box',
+                    'active' => request()->routeIs('inventory.*') && ! $isStaff,
+                    'icon'   => 'heroicon-o-magnifying-glass',
                 ],
-            ],
-        ],
-        [
-            'title' => 'Transactions',
-            'items' => [
                 [
-                    'label'  => 'Loan History',
+                    'label'  => 'My Reservations',
+                    'href'   => '#',
+                    'active' => false,
+                    'icon'   => 'heroicon-o-calendar-days',
+                ],
+                [
+                    'label'  => 'My Active Loans',
+                    'href'   => '#',
+                    'active' => false,
+                    'icon'   => 'heroicon-o-arrow-path',
+                ],
+                [
+                    'label'  => 'Borrowing History',
                     'href'   => '#',
                     'active' => false,
                     'icon'   => 'heroicon-o-clock',
                 ],
+                [
+                    'label'  => 'My Penalties & Dues',
+                    'href'   => '#',
+                    'active' => false,
+                    'icon'   => 'heroicon-o-receipt-percent',
+                ],
             ],
         ],
-        [
-            'title' => 'Organization Settings',
+    ];
+
+    if ($isStaff) {
+        $navGroups[] = [
+            'title' => 'Circulation & Desk',
+            'items' => [
+                [
+                    'label'  => 'Check-Out / Check-In',
+                    'href'   => '#',
+                    'active' => false,
+                    'icon'   => 'heroicon-o-arrows-right-left',
+                ],
+                [
+                    'label'  => 'Active Loans',
+                    'href'   => '#',
+                    'active' => false,
+                    'icon'   => 'heroicon-o-clipboard-document-check',
+                ],
+                [
+                    'label'  => 'Booking Requests',
+                    'href'   => '#',
+                    'active' => false,
+                    'icon'   => 'heroicon-o-inbox-stack',
+                ],
+                [
+                    'label'  => 'Overdue Tracking',
+                    'href'   => '#',
+                    'active' => false,
+                    'icon'   => 'heroicon-o-exclamation-circle',
+                ],
+                [
+                    'label'  => 'Availability Calendar',
+                    'href'   => '#',
+                    'active' => false,
+                    'icon'   => 'heroicon-o-calendar',
+                ],
+            ],
+        ];
+
+        $navGroups[] = [
+            'title' => 'Inventory & Assets',
+            'items' => [
+                [
+                    'label'  => 'Equipment Catalog',
+                    'href'   => route('inventory.index'),
+                    'active' => request()->routeIs('inventory.*'),
+                    'icon'   => 'heroicon-o-archive-box',
+                ],
+                [
+                    'label'  => 'Units & Serials',
+                    'href'   => '#',
+                    'active' => false,
+                    'icon'   => 'heroicon-o-qr-code',
+                ],
+                [
+                    'label'  => 'Restocking Logs',
+                    'href'   => '#',
+                    'active' => false,
+                    'icon'   => 'heroicon-o-arrow-down-tray',
+                ],
+                [
+                    'label'  => 'Audits & Adjustments',
+                    'href'   => '#',
+                    'active' => false,
+                    'icon'   => 'heroicon-o-clipboard-document-list',
+                ],
+            ],
+        ];
+
+        $navGroups[] = [
+            'title' => 'Finance & Penalties',
+            'items' => [
+                [
+                    'label'  => 'Penalties & Fines',
+                    'href'   => '#',
+                    'active' => false,
+                    'icon'   => 'heroicon-o-banknotes',
+                ],
+                [
+                    'label'  => 'Payments & Receipts',
+                    'href'   => '#',
+                    'active' => false,
+                    'icon'   => 'heroicon-o-credit-card',
+                ],
+            ],
+        ];
+
+        $navGroups[] = [
+            'title' => 'Reports & Analytics',
+            'items' => [
+                [
+                    'label'  => 'Inventory Reports',
+                    'href'   => '#',
+                    'active' => false,
+                    'icon'   => 'heroicon-o-chart-pie',
+                ],
+                [
+                    'label'  => 'Circulation Metrics',
+                    'href'   => '#',
+                    'active' => false,
+                    'icon'   => 'heroicon-o-chart-bar-square',
+                ],
+                [
+                    'label'  => 'Penalty Collections',
+                    'href'   => '#',
+                    'active' => false,
+                    'icon'   => 'heroicon-o-presentation-chart-line',
+                ],
+            ],
+        ];
+
+        $navGroups[] = [
+            'title' => 'Administration',
             'items' => [
                 [
                     'label'  => 'Organization Settings',
@@ -43,33 +171,36 @@
                     'icon'   => 'heroicon-o-cog-6-tooth',
                 ],
             ],
-        ],
-        [
-            'title' => 'Developer',
+        ];
+    }
+
+    if ($isSuperAdmin) {
+        $navGroups[] = [
+            'title' => 'Developer & System',
             'items' => [
                 [
-                    'label'  => 'Organization',
+                    'label'  => 'Organizations',
                     'href'   => route('organization.index'),
                     'active' => request()->routeIs('organization.index'),
-                    'icon'   => 'heroicon-o-building-office',
+                    'icon'   => 'heroicon-o-building-office-2',
                 ],
                 [
-                    'label'  => 'Payment Methods',
-                    'href'   => route('payment-methods.index'),
-                    'active' => request()->routeIs('payment-methods.*'),
-                    'icon'   => 'heroicon-o-credit-card',
-                ],
-                [
-                    'label'  => 'Users',
+                    'label'  => 'Users Management',
                     'href'   => route('users.index'),
                     'active' => request()->routeIs('users.*'),
                     'icon'   => 'heroicon-o-users',
                 ],
                 [
-                    'label'  => 'Roles and Permissions',
+                    'label'  => 'Roles & Permissions',
                     'href'   => '#',
                     'active' => false,
                     'icon'   => 'heroicon-o-shield-check',
+                ],
+                [
+                    'label'  => 'Payment Methods',
+                    'href'   => route('payment-methods.index'),
+                    'active' => request()->routeIs('payment-methods.*'),
+                    'icon'   => 'heroicon-o-wallet',
                 ],
                 [
                     'label'  => 'Starter Page',
@@ -78,11 +209,7 @@
                     'icon'   => 'heroicon-o-document-text',
                 ],
             ],
-        ],
-    ];
-
-    if (! auth()->user()?->hasRole('superadmin')) {
-        $navGroups = array_values(array_filter($navGroups, fn ($group) => $group['title'] !== 'Developer'));
+        ];
     }
 @endphp
 
@@ -100,21 +227,21 @@
             </label>
         </div>
 
-        <!-- Sidebar Top Profile Card (Mirroring Reference Photo 1) -->
+        <!-- Sidebar Top Profile Card -->
         <div class="border-b border-slate-700/60"
-            x-bind:class="sidebarCollapsed ? 'py-4 flex flex-col items-center' : 'pt-6 pb-5 px-4 flex flex-col items-center'">
+            x-bind:class="sidebarCollapsed ? 'py-4 flex flex-col items-center' : 'pt-5 pb-4 px-4 flex flex-col items-center'">
 
             <!-- Expanded State Profile Details -->
             <template x-if="!sidebarCollapsed">
                 <a href="{{ route('user.profile') }}" class="flex flex-col items-center w-full group cursor-pointer" title="{{ __('View Profile') }}">
                     <div class="avatar avatar-placeholder mb-2" :class="{ 'avatar-placeholder': !picDir }">
                         <template x-if="picDir">
-                            <div class="w-20 h-20 rounded-full border-2 border-slate-500/60 shadow-md ring-4 ring-slate-800/80 overflow-hidden group-hover:ring-amber-400/70 transition-all">
+                            <div class="w-16 h-16 rounded-full border-2 border-slate-500/60 shadow-md ring-4 ring-slate-800/80 overflow-hidden group-hover:ring-amber-400/70 transition-all">
                                 <img :src="picDir" :alt="name" class="w-full h-full object-cover" />
                             </div>
                         </template>
                         <template x-if="!picDir">
-                            <div class="w-20 h-20 rounded-full bg-slate-700/90 border-2 border-slate-500/60 shadow-md text-slate-100 text-2xl font-bold flex items-center justify-center ring-4 ring-slate-800/80 group-hover:ring-amber-400/70 transition-all">
+                            <div class="w-16 h-16 rounded-full bg-slate-700/90 border-2 border-slate-500/60 shadow-md text-slate-100 text-xl font-bold flex items-center justify-center ring-4 ring-slate-800/80 group-hover:ring-amber-400/70 transition-all">
                                 <span x-text="name ? name.charAt(0).toUpperCase() : 'U'"></span>
                             </div>
                         </template>
@@ -144,28 +271,30 @@
         </div>
 
         <!-- Navigation Menu -->
-        <nav class="flex-1 overflow-y-auto overflow-x-hidden px-3 py-4 space-y-4">
+        <nav class="flex-1 overflow-y-auto overflow-x-hidden px-2.5 py-3 space-y-3">
             @foreach ($navGroups as $group)
-                <div class="space-y-1">
+                <div class="space-y-0.5">
                     <!-- Section Header -->
-                    <div class="px-3 mb-1 flex items-center"
+                    <div class="px-2.5 mb-1 flex items-center"
                         x-bind:class="sidebarCollapsed ? 'lg:justify-center lg:px-0' : ''">
-                        <span x-show="!sidebarCollapsed" class="text-[10px] font-bold uppercase tracking-wider text-slate-400/60">
+                        <span x-show="!sidebarCollapsed" class="text-[10px] font-bold uppercase tracking-wider text-slate-400/70">
                             {{ $group['title'] }}
                         </span>
                         <span x-show="sidebarCollapsed" class="hidden lg:block w-5 h-px bg-slate-700/60 my-1" title="{{ $group['title'] }}"></span>
                     </div>
 
                     <!-- Group Items -->
-                    <ul class="space-y-1">
+                    <ul class="space-y-0.5">
                         @foreach ($group['items'] as $item)
                             <li>
                                 <div x-bind:class="sidebarCollapsed ? 'lg:tooltip lg:tooltip-right w-full' : 'w-full'" data-tip="{{ $item['label'] }}">
                                     <a href="{{ $item['href'] }}"
+                                        @if ($item['href'] === '#') onclick="return false;" @endif
                                         @class([
-                                            'group relative flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-colors duration-150',
+                                            'group relative flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors duration-150',
                                             'text-amber-400 bg-amber-400/10 font-semibold border-l-2 border-amber-400' => $item['active'],
                                             'text-slate-300 hover:text-white hover:bg-white/5 border-l-2 border-transparent' => ! $item['active'],
+                                            'opacity-85 hover:opacity-100' => $item['href'] === '#',
                                         ])
                                         x-bind:class="sidebarCollapsed ? 'lg:justify-center lg:px-0 lg:border-l-0' : ''">
                                         <x-icon :name="$item['icon']"
@@ -192,10 +321,10 @@
         </nav>
 
         <!-- Sidebar Footer Action -->
-        <div class="p-3 border-t border-slate-700/60 bg-slate-900/40">
-            <div class="flex items-center justify-between text-xs text-slate-400 px-2"
+        <div class="p-2.5 border-t border-slate-700/60 bg-slate-900/40">
+            <div class="flex items-center justify-between text-xs text-slate-400 px-1"
                 x-bind:class="sidebarCollapsed ? 'lg:justify-center lg:px-0' : ''">
-                <span class="text-[11px] font-mono opacity-60" x-show="!sidebarCollapsed">Equilend v1.0</span>
+                <span class="text-[10px] font-mono opacity-60" x-show="!sidebarCollapsed">Equilend v1.0</span>
                 <button type="button" x-on:click="toggleSidebar()"
                     class="btn btn-ghost btn-square btn-xs hidden lg:inline-flex text-slate-400 hover:text-white"
                     title="Toggle sidebar">

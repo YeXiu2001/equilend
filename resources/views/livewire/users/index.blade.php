@@ -1,4 +1,9 @@
 <div>
+    <x-breadcrumbs :items="[
+        ['label' => __('Developer'), 'icon' => 'heroicon-o-command-line'],
+        ['label' => __('Users Management'), 'icon' => 'heroicon-o-users'],
+    ]" />
+
     <div class="card bg-base-100 card-border border-base-300 shadow-xs">
         <div class="card-body">
             <div class="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
