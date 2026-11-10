@@ -18,5 +18,5 @@ it('renders the profile page with tabs', function () {
         ->assertViewIs('livewire.user.profile')
         ->assertSee(__('Profile'))
         ->assertSee(__('Password'))
-        ->assertSee(__('Two Factor Authentication'));
+        ->assertDontSee(__('Two Factor Authentication'));
 });

@@ -117,9 +117,8 @@ return [
     */
 
     'limiters' => [
-        'login'      => 'login',
-        'two-factor' => 'two-factor',
-        'passkeys'   => 'passkeys',
+        'login'    => 'login',
+        'passkeys' => 'passkeys',
     ],
 
     /*
@@ -166,9 +165,6 @@ return [
     'features' => [
         Features::registration(),
         Features::resetPasswords(),
-        Features::twoFactorAuthentication([
-            'confirm' => true,
-        ]),
     ],
 
 ];
