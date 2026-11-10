@@ -13,6 +13,7 @@ use App\Livewire\Organization\Settings;
 beforeEach(function () {
     Role::firstOrCreate(['name' => 'superadmin', 'guard_name' => 'web']);
     Role::firstOrCreate(['name' => 'organization_admin', 'guard_name' => 'web']);
+    Role::firstOrCreate(['name' => 'member', 'guard_name' => 'web']);
 
     $this->superAdmin = User::factory()->create();
     $this->superAdmin->assignRole('superadmin');
@@ -37,13 +38,31 @@ beforeEach(function () {
     );
 });
 
-it('shows empty state when authenticated user has no assigned organization', function () {
-    $unassignedUser = User::factory()->create();
-    Auth::login($unassignedUser);
+it('shows empty state when authenticated organization admin has no assigned organization', function () {
+    $unassignedAdmin = User::factory()->create();
+    $unassignedAdmin->assignRole('organization_admin');
+    Auth::login($unassignedAdmin);
 
     Livewire::test(Settings::class)
         ->assertOk()
         ->assertSee('No Organization Assigned');
+});
+
+it('forbids access to members without admin privileges', function () {
+    $member = User::factory()->create();
+    $member->assignRole('member');
+    Auth::login($member);
+
+    Livewire::test(Settings::class)
+        ->assertForbidden();
+});
+
+it('forbids access to users without any role', function () {
+    $user = User::factory()->create();
+    Auth::login($user);
+
+    Livewire::test(Settings::class)
+        ->assertForbidden();
 });
 
 it('loads assigned organization data and allows updating profile details', function () {

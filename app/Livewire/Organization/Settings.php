@@ -44,6 +44,10 @@ class Settings extends Component
     {
         $user = Auth::user();
 
+        if (! $user || ! $user->hasAnyRole(['superadmin', 'organization_admin'])) {
+            abort(403, 'Unauthorized access to organization settings.');
+        }
+
         if ($user->hasRole('superadmin')) {
             // Superadmin can edit their own org or the first available organization
             $this->organization = $user->organization ?? Organization::first();
