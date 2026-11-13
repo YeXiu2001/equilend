@@ -82,6 +82,96 @@ class Organization extends Model
     }
 
     /**
+     * Categories defined specifically for this organization.
+     *
+     * @return HasMany<Category, $this>
+     */
+    public function categories(): HasMany
+    {
+        return $this->hasMany(Category::class);
+    }
+
+    /**
+     * Equipment catalog items belonging to this organization.
+     *
+     * @return HasMany<Item, $this>
+     */
+    public function items(): HasMany
+    {
+        return $this->hasMany(Item::class);
+    }
+
+    /**
+     * Equipment physical units belonging to this organization.
+     *
+     * @return HasMany<ItemUnit, $this>
+     */
+    public function itemUnits(): HasMany
+    {
+        return $this->hasMany(ItemUnit::class);
+    }
+
+    /**
+     * Inventory logs belonging to this organization.
+     *
+     * @return HasMany<InventoryLog, $this>
+     */
+    public function inventoryLogs(): HasMany
+    {
+        return $this->hasMany(InventoryLog::class);
+    }
+
+    /**
+     * Equipment reservations booked with this organization.
+     *
+     * @return HasMany<Reservation, $this>
+     */
+    public function reservations(): HasMany
+    {
+        return $this->hasMany(Reservation::class);
+    }
+
+    /**
+     * Equipment loans managed by this organization.
+     *
+     * @return HasMany<Loan, $this>
+     */
+    public function loans(): HasMany
+    {
+        return $this->hasMany(Loan::class);
+    }
+
+    /**
+     * Equipment schedules and maintenance windows configured for this organization.
+     *
+     * @return HasMany<EquipmentSchedule, $this>
+     */
+    public function equipmentSchedules(): HasMany
+    {
+        return $this->hasMany(EquipmentSchedule::class);
+    }
+
+    /**
+     * Penalties assessed under this organization.
+     *
+     * @return HasMany<Penalty, $this>
+     */
+    public function penalties(): HasMany
+    {
+        return $this->hasMany(Penalty::class);
+    }
+
+    /**
+     * Payments collected by this organization.
+     *
+     * @return HasMany<Payment, $this>
+     */
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    /**
      * Scope a query to only include active organizations.
      *
      * @param  Builder<Organization>  $query
