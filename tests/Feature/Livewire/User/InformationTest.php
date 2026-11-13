@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 use App\Models\User;
 use Livewire\Livewire;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use App\Livewire\User\Profile\Information;
 
 beforeEach(function () {
+    Storage::fake('public');
+
     $this->user = User::factory()->create();
 
     $this->actingAs($this->user);
@@ -57,9 +61,77 @@ it('dispatches success alert after saving', function () {
         ->set('user.name', 'Updated Again')
         ->call('save')
         ->assertDispatched('updated')
-        ->assertDispatched('ts-ui:dialog', function (string $event, array $params) {
-            return $event === 'ts-ui:dialog' &&
+        ->assertDispatched('alert:dialog', function (string $event, array $params) {
+            return $event === 'alert:dialog' &&
                 $params['type'] === 'success' &&
                 $params['title'] === 'Done!';
         });
+});
+
+it('validates photo is an image', function () {
+    $file = UploadedFile::fake()->create('document.pdf', 500, 'application/pdf');
+
+    Livewire::test(Information::class)
+        ->set('photo', $file)
+        ->call('save')
+        ->assertHasErrors(['photo' => 'image']);
+});
+
+it('validates photo size cannot exceed 2mb', function () {
+    $file = UploadedFile::fake()->image('avatar.jpg')->size(2049);
+
+    Livewire::test(Information::class)
+        ->set('photo', $file)
+        ->call('save')
+        ->assertHasErrors(['photo' => 'max']);
+});
+
+it('uploads and updates profile photo in database and storage', function () {
+    $file = UploadedFile::fake()->image('avatar.png');
+
+    Livewire::test(Information::class)
+        ->set('photo', $file)
+        ->call('save')
+        ->assertHasNoErrors()
+        ->assertDispatched('updated');
+
+    $this->user->refresh();
+
+    expect($this->user->pic_dir)->not->toBeNull();
+    Storage::disk('public')->assertExists($this->user->pic_dir);
+});
+
+it('replaces old profile photo and deletes previous one from storage', function () {
+    $oldFile = UploadedFile::fake()->image('old-avatar.png');
+    $oldPath = $oldFile->store('profiles', 'public');
+    $this->user->update(['pic_dir' => $oldPath]);
+
+    $newFile = UploadedFile::fake()->image('new-avatar.png');
+
+    Livewire::test(Information::class)
+        ->set('photo', $newFile)
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $this->user->refresh();
+
+    expect($this->user->pic_dir)->not->toBe($oldPath);
+    Storage::disk('public')->assertMissing($oldPath);
+    Storage::disk('public')->assertExists($this->user->pic_dir);
+});
+
+it('removes profile photo from database and storage', function () {
+    $file = UploadedFile::fake()->image('avatar.png');
+    $path = $file->store('profiles', 'public');
+    $this->user->update(['pic_dir' => $path]);
+
+    Livewire::test(Information::class)
+        ->call('removePhoto')
+        ->assertHasNoErrors()
+        ->assertDispatched('updated');
+
+    $this->user->refresh();
+
+    expect($this->user->pic_dir)->toBeNull();
+    Storage::disk('public')->assertMissing($path);
 });

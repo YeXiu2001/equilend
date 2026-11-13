@@ -1,42 +1,40 @@
 <div>
-    <x-loading loading="delete" />
+    <button type="button" class="btn btn-error btn-sm rounded-full" wire:click="$toggle('modal')">
+        {{ __('Delete Profile') }}
+    </button>
 
-    <x-button :text="__('Delete Profile')"
-              color="red"
-              sm
-              round
-              wire:click="$toggle('modal')" />
+    <dialog id="delete-profile" class="modal" @if ($modal) open @endif>
+        <div class="modal-box">
+            <h3 class="text-lg font-bold mb-2">{{ __('Delete Profile') }}</h3>
 
-    <x-modal wire
-             id="delete-profile"
-             :title="__('Delete Profile')"
-             center="md"
-             x-on:open="$tsui.focus('password')">
-        <form id="delete-profile-form" wire:submit="confirm" class="space-y-4">
-            <p class="text-sm text-gray-600 dark:text-gray-400">
-                {{ __('Are you sure you want to delete your profile? This action cannot be undone.') }}
-            </p>
+            <form id="delete-profile-form" wire:submit="confirm" class="space-y-4">
+                <p class="text-sm text-base-content/70">
+                    {{ __('Are you sure you want to delete your profile? This action cannot be undone.') }}
+                </p>
 
-            <x-password label="{{ __('Current Password') }} *"
-                        wire:model="password"
-                        autocomplete="current-password"
-                        required />
-        </form>
+                <fieldset class="fieldset w-full">
+                    <legend class="fieldset-legend">{{ __('Current Password') }} *</legend>
+                    <input type="password" id="password" wire:model="password" autocomplete="current-password" required
+                        class="input w-full @error('password') input-error @enderror" />
+                    @error('password')
+                        <p class="label text-error text-xs">{{ $message }}</p>
+                    @enderror
+                </fieldset>
+            </form>
 
-        <x-slot:footer>
-            <div class="flex flex-wrap items-center gap-2">
-                <x-button :text="__('Cancel')"
-                      round
-                      sm
-                      wire:click="$set('modal', false)" />
+            <div class="modal-action">
+                <button type="button" class="btn btn-ghost btn-sm rounded-full" wire:click="$set('modal', false)">
+                    {{ __('Cancel') }}
+                </button>
 
-            <x-button submit
-                      form="delete-profile-form"
-                      :text="__('Delete')"
-                      color="red"
-                      round
-                      loading="confirm" />
+                <button type="submit" form="delete-profile-form" class="btn btn-error btn-sm rounded-full" wire:loading.attr="disabled" wire:target="confirm,delete">
+                    <span wire:loading wire:target="confirm,delete" class="loading loading-spinner loading-xs"></span>
+                    <span>{{ __('Delete') }}</span>
+                </button>
             </div>
-        </x-slot:footer>
-    </x-modal>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button type="button" wire:click="$set('modal', false)">close</button>
+        </form>
+    </dialog>
 </div>

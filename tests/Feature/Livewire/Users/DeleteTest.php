@@ -22,7 +22,7 @@ it('renders the delete component', function () {
 it('calls confirm method', function () {
     Livewire::test(Delete::class, ['user' => $this->user])
         ->call('confirm')
-        ->assertDispatched('ts-ui:dialog');
+        ->assertDispatched('alert:dialog');
 });
 
 it('deletes user successfully', function () {
@@ -49,7 +49,7 @@ it('handles deleting non-existent user', function () {
 it('dispatches success after deletion', function () {
     Livewire::test(Delete::class, ['user' => $this->user])
         ->call('delete')
-        ->assertDispatched('ts-ui:dialog');
+        ->assertDispatched('alert:dialog');
 
     assertModelMissing($this->user);
 });
@@ -57,7 +57,7 @@ it('dispatches success after deletion', function () {
 it('confirms before deletion via question method', function () {
     Livewire::test(Delete::class, ['user' => $this->user])
         ->call('confirm')
-        ->assertDispatched('ts-ui:dialog');
+        ->assertDispatched('alert:dialog');
 
     assertModelExists($this->user);
 });

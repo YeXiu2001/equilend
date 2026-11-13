@@ -11,11 +11,20 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        User::factory(24)->insert();
-
-        User::factory()->create([
-            'name'  => 'Test User',
-            'email' => 'test@example.com',
+        $this->call([
+            RoleAndPermissionSeeder::class,
+            PaymentMethodSeeder::class,
+            OrganizationSeeder::class,
+            CategorySeeder::class,
+            InventorySeeder::class,
+            CirculationSeeder::class,
+            PenaltySeeder::class,
+            AnalyticsSeeder::class,
+            NotificationSeeder::class,
         ]);
+
+        if (User::count() <= 2) {
+            User::factory(10)->create();
+        }
     }
 }

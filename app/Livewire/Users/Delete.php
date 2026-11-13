@@ -19,7 +19,9 @@ class Delete extends Component
     {
         return <<<'HTML'
         <div>
-            <x-button.circle icon="trash" color="red" wire:click="confirm" />
+            <button type="button" class="btn btn-ghost btn-circle btn-sm text-error" wire:click="confirm" aria-label="Delete user">
+                <x-heroicon-o-trash class="w-4 h-4" />
+            </button>
         </div>
         HTML;
     }
