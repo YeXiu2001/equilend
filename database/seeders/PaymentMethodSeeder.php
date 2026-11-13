@@ -16,6 +16,12 @@ class PaymentMethodSeeder extends Seeder
     {
         $methods = [
             [
+                'payment_code' => 'cash',
+                'name'         => 'Cash',
+                'description'  => 'Over-the-counter Cash Payment at Circulation Desk',
+                'is_active'    => true,
+            ],
+            [
                 'payment_code' => 'gcash',
                 'name'         => 'GCash',
                 'description'  => 'GCash Mobile Wallet',
