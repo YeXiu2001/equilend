@@ -30,7 +30,7 @@
     <style>[x-cloak] { display: none !important; }</style>
 </head>
 
-<body class="font-sans antialiased bg-base-200 text-base-content min-h-screen flex flex-col"
+<body class="font-sans antialiased bg-base-200 text-base-content min-h-screen lg:h-dvh lg:overflow-hidden flex flex-col"
     x-cloak
     x-data="{
         name: @js(auth()->user()?->name),
@@ -123,7 +123,7 @@
     </dialog>
 
     <!-- Top Navbar (Institutional Crimson Maroon Bar) -->
-    <header class="navbar bg-primary text-primary-content h-16 min-h-16 sticky top-0 z-30 px-3 sm:px-4 shadow-sm border-b border-black/10 select-none">
+    <header class="navbar bg-primary text-primary-content h-16 min-h-16 shrink-0 sticky top-0 z-30 px-3 sm:px-4 shadow-sm border-b border-black/10 select-none">
         <div class="flex-none flex items-center gap-2 sm:gap-3">
             <!-- Brand Badge (Replaces reference 'myIIT' badge with Equilend) -->
             <a href="{{ route('dashboard') }}" class="flex items-center gap-2 bg-white text-primary px-2.5 py-1 rounded-md font-bold shadow-xs hover:bg-slate-100 transition-colors">
@@ -148,22 +148,9 @@
         <!-- Right Header Items: Strictly Notification Bell and User Name Profile Trigger -->
         <div class="flex-none flex items-center gap-2 sm:gap-3">
             <!-- Notification Bell Icon -->
-            <div class="dropdown dropdown-end">
-                <button tabindex="0" role="button" class="btn btn-ghost btn-circle btn-sm text-white hover:bg-white/10 relative" aria-label="Notifications">
-                    <x-heroicon-o-bell class="w-5 h-5" />
-                    <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-secondary ring-2 ring-primary"></span>
-                </button>
-                <div tabindex="0" class="dropdown-content menu bg-base-100 text-base-content rounded-box z-50 mt-2 w-72 p-3 shadow-xl border border-base-300">
-                    <div class="flex items-center justify-between border-b border-base-200 pb-2 mb-2">
-                        <span class="font-bold text-xs uppercase tracking-wider text-base-content/80">Notifications</span>
-                        <span class="badge badge-xs badge-secondary font-medium">0 Unread</span>
-                    </div>
-                    <div class="py-6 text-center text-xs text-base-content/60">
-                        <x-heroicon-o-bell-slash class="w-7 h-7 mx-auto mb-1.5 opacity-40 text-base-content" />
-                        No new notifications
-                    </div>
-                </div>
-            </div>
+            @auth
+                <livewire:notifications.bell />
+            @endauth
 
             <!-- User Profile Dropdown (Mirroring Reference Photo 2) -->
             <div class="dropdown dropdown-end">
@@ -247,10 +234,10 @@
     </header>
 
     <!-- App Drawer Layout -->
-    <div class="drawer lg:drawer-open flex-1">
+    <div class="drawer lg:drawer-open flex-1 lg:min-h-0 lg:grid-rows-[minmax(0,1fr)]">
         <input id="app-drawer" type="checkbox" class="drawer-toggle" />
 
-        <div class="drawer-content flex flex-col flex-1 bg-base-200 min-w-0">
+        <div class="drawer-content flex flex-col flex-1 bg-base-200 min-w-0 lg:min-h-0 lg:overflow-y-auto">
             <!-- Main Content Canvas -->
             <main class="flex-1 p-1 sm:p-2 w-full min-w-0">
                 {{ $slot }}
