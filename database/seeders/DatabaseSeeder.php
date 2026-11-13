@@ -15,6 +15,12 @@ class DatabaseSeeder extends Seeder
             RoleAndPermissionSeeder::class,
             PaymentMethodSeeder::class,
             OrganizationSeeder::class,
+            CategorySeeder::class,
+            InventorySeeder::class,
+            CirculationSeeder::class,
+            PenaltySeeder::class,
+            AnalyticsSeeder::class,
+            NotificationSeeder::class,
         ]);
 
         if (User::count() <= 2) {
