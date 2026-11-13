@@ -23,7 +23,7 @@ class LoginResponse implements LoginResponseContract
         $user = $request->user();
 
         if ($user !== null && $user->hasRole('member') && ! $user->hasAnyRole(['superadmin', 'organization_admin'])) {
-            return redirect()->intended('/inventory');
+            return redirect()->intended('/portal/browse');
         }
 
         return redirect()->intended('/dashboard');
