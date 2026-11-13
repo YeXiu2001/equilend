@@ -52,14 +52,14 @@ it('redirects organization admin to dashboard after login', function () {
     $this->assertAuthenticatedAs($admin);
 });
 
-it('redirects member borrower to inventory after login', function () {
+it('redirects member borrower to borrower portal browse after login', function () {
     $borrower = User::factory()->create();
     $borrower->assignRole('member');
 
     $this->post(route('login.store'), [
         'email'    => $borrower->email,
         'password' => 'Test123!',
-    ])->assertRedirect('/inventory');
+    ])->assertRedirect('/portal/browse');
 
     $this->assertAuthenticatedAs($borrower);
 });
