@@ -20,32 +20,32 @@
             'items' => [
                 [
                     'label'  => 'Browse Equipment',
-                    'href'   => route('inventory.index'),
-                    'active' => request()->routeIs('inventory.*') && ! $isStaff,
+                    'href'   => route('portal.browse'),
+                    'active' => request()->routeIs('portal.browse'),
                     'icon'   => 'heroicon-o-magnifying-glass',
                 ],
                 [
                     'label'  => 'My Reservations',
-                    'href'   => '#',
-                    'active' => false,
+                    'href'   => route('portal.reservations'),
+                    'active' => request()->routeIs('portal.reservations'),
                     'icon'   => 'heroicon-o-calendar-days',
                 ],
                 [
                     'label'  => 'My Active Loans',
-                    'href'   => '#',
-                    'active' => false,
+                    'href'   => route('portal.loans'),
+                    'active' => request()->routeIs('portal.loans'),
                     'icon'   => 'heroicon-o-arrow-path',
                 ],
                 [
                     'label'  => 'Borrowing History',
-                    'href'   => '#',
-                    'active' => false,
+                    'href'   => route('portal.history'),
+                    'active' => request()->routeIs('portal.history'),
                     'icon'   => 'heroicon-o-clock',
                 ],
                 [
                     'label'  => 'My Penalties & Dues',
-                    'href'   => '#',
-                    'active' => false,
+                    'href'   => route('portal.penalties'),
+                    'active' => request()->routeIs('portal.penalties'),
                     'icon'   => 'heroicon-o-receipt-percent',
                 ],
             ],
@@ -58,32 +58,32 @@
             'items' => [
                 [
                     'label'  => 'Check-Out / Check-In',
-                    'href'   => '#',
-                    'active' => false,
+                    'href'   => route('circulation.desk'),
+                    'active' => request()->routeIs('circulation.desk'),
                     'icon'   => 'heroicon-o-arrows-right-left',
                 ],
                 [
                     'label'  => 'Active Loans',
-                    'href'   => '#',
-                    'active' => false,
+                    'href'   => route('circulation.loans'),
+                    'active' => request()->routeIs('circulation.loans'),
                     'icon'   => 'heroicon-o-clipboard-document-check',
                 ],
                 [
                     'label'  => 'Booking Requests',
-                    'href'   => '#',
-                    'active' => false,
+                    'href'   => route('circulation.reservations'),
+                    'active' => request()->routeIs('circulation.reservations'),
                     'icon'   => 'heroicon-o-inbox-stack',
                 ],
                 [
                     'label'  => 'Overdue Tracking',
-                    'href'   => '#',
-                    'active' => false,
+                    'href'   => route('circulation.overdue'),
+                    'active' => request()->routeIs('circulation.overdue'),
                     'icon'   => 'heroicon-o-exclamation-circle',
                 ],
                 [
                     'label'  => 'Availability Calendar',
-                    'href'   => '#',
-                    'active' => false,
+                    'href'   => route('circulation.calendar'),
+                    'active' => request()->routeIs('circulation.calendar'),
                     'icon'   => 'heroicon-o-calendar',
                 ],
             ],
@@ -124,14 +124,14 @@
             'items' => [
                 [
                     'label'  => 'Penalties & Fines',
-                    'href'   => '#',
-                    'active' => false,
+                    'href'   => route('finance.penalties'),
+                    'active' => request()->routeIs('finance.penalties'),
                     'icon'   => 'heroicon-o-banknotes',
                 ],
                 [
                     'label'  => 'Payments & Receipts',
-                    'href'   => '#',
-                    'active' => false,
+                    'href'   => route('finance.payments'),
+                    'active' => request()->routeIs('finance.payments'),
                     'icon'   => 'heroicon-o-credit-card',
                 ],
             ],
@@ -142,20 +142,20 @@
             'items' => [
                 [
                     'label'  => 'Inventory Reports',
-                    'href'   => '#',
-                    'active' => false,
+                    'href'   => route('reports.inventory'),
+                    'active' => request()->routeIs('reports.inventory'),
                     'icon'   => 'heroicon-o-chart-pie',
                 ],
                 [
                     'label'  => 'Circulation Metrics',
-                    'href'   => '#',
-                    'active' => false,
+                    'href'   => route('reports.circulation'),
+                    'active' => request()->routeIs('reports.circulation'),
                     'icon'   => 'heroicon-o-chart-bar-square',
                 ],
                 [
                     'label'  => 'Penalty Collections',
-                    'href'   => '#',
-                    'active' => false,
+                    'href'   => route('reports.collections'),
+                    'active' => request()->routeIs('reports.collections'),
                     'icon'   => 'heroicon-o-presentation-chart-line',
                 ],
             ],
@@ -213,14 +213,14 @@
     }
 @endphp
 
-<div class="drawer-side z-40">
+<div class="drawer-side z-40 lg:z-20 lg:top-0 lg:h-full lg:overflow-hidden!">
     <label for="app-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
 
-    <aside class="bg-[#22272e] text-slate-200 border-r border-[#1a1e23] min-h-full flex flex-col transition-all duration-300 ease-in-out select-none shadow-xl w-64"
+    <aside class="bg-[#22272e] text-slate-200 border-r border-[#1a1e23] min-h-full lg:min-h-0 lg:h-full flex flex-col transition-all duration-300 ease-in-out select-none shadow-xl w-64"
         x-bind:class="sidebarCollapsed ? 'lg:w-20' : 'lg:w-64'">
 
         <!-- Mobile Header with Close Button -->
-        <div class="lg:hidden flex items-center justify-between px-4 py-3 border-b border-slate-700/60">
+        <div class="lg:hidden shrink-0 flex items-center justify-between px-4 py-3 border-b border-slate-700/60">
             <span class="text-xs font-bold uppercase tracking-wider text-slate-300">Navigation</span>
             <label for="app-drawer" aria-label="close sidebar" class="btn btn-ghost btn-square btn-xs text-slate-400 hover:text-white">
                 <x-heroicon-o-x-mark class="w-4 h-4" />
@@ -228,7 +228,7 @@
         </div>
 
         <!-- Sidebar Top Profile Card -->
-        <div class="border-b border-slate-700/60"
+        <div class="shrink-0 border-b border-slate-700/60"
             x-bind:class="sidebarCollapsed ? 'py-4 flex flex-col items-center' : 'pt-5 pb-4 px-4 flex flex-col items-center'">
 
             <!-- Expanded State Profile Details -->
@@ -271,7 +271,7 @@
         </div>
 
         <!-- Navigation Menu -->
-        <nav class="flex-1 overflow-y-auto overflow-x-hidden px-2.5 py-3 space-y-3">
+        <nav class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain sidebar-scroll px-2.5 py-3 space-y-3">
             @foreach ($navGroups as $group)
                 <div class="space-y-0.5">
                     <!-- Section Header -->
@@ -321,7 +321,7 @@
         </nav>
 
         <!-- Sidebar Footer Action -->
-        <div class="p-2.5 border-t border-slate-700/60 bg-slate-900/40">
+        <div class="shrink-0 p-2.5 border-t border-slate-700/60 bg-slate-900/40">
             <div class="flex items-center justify-between text-xs text-slate-400 px-1"
                 x-bind:class="sidebarCollapsed ? 'lg:justify-center lg:px-0' : ''">
                 <span class="text-[10px] font-mono opacity-60" x-show="!sidebarCollapsed">Equilend v1.0</span>
