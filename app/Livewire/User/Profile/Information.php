@@ -44,7 +44,7 @@ class Information extends Component
             'photo' => [
                 'nullable',
                 'image',
-                'max:2048',
+                'max:5120',
             ],
         ];
     }
@@ -71,7 +71,7 @@ class Information extends Component
             $this->user->save();
 
             $this->dispatch('updated', name: $this->user->name, pic_dir: $this->user->pic_url);
-            $this->success();
+            $this->success('Profile updated successfully.');
 
             return;
         } catch (Exception $e) {
