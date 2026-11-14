@@ -27,10 +27,10 @@
         </div>
     </form>
 
-    <div class="mt-6 flex justify-end">
-        <button type="submit" form="update-password" class="btn btn-primary rounded-full" wire:loading.attr="disabled" wire:target="save">
+    <div class="mt-6 pt-4 border-t border-base-200 flex justify-end">
+        <button type="submit" form="update-password" class="btn btn-primary btn-sm px-5 font-semibold" wire:loading.attr="disabled" wire:target="save">
             <span wire:loading wire:target="save" class="loading loading-spinner loading-xs"></span>
-            <span>{{ __('Save') }}</span>
+            <span>{{ __('Update Password') }}</span>
         </button>
     </div>
 </div>

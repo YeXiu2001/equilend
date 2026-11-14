@@ -66,7 +66,7 @@ class Password extends Component
 
             $this->reset('current_password', 'password', 'password_confirmation');
             $this->dispatch('mount')->self();
-            $this->success();
+            $this->success('Password updated successfully.');
 
             return;
         } catch (Exception $e) {
