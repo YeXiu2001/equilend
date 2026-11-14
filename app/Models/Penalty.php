@@ -130,24 +130,21 @@ class Penalty extends Model
         return DB::transaction(function () use ($amount, $paymentAttributes): Payment {
             $penalty = static::lockForUpdate()->findOrFail($this->id);
 
-            if (in_array($penalty->status, [PenaltyStatus::Paid, PenaltyStatus::Waived, PenaltyStatus::Voided], true)) {
+            if (in_array($penalty->status, [PenaltyStatus::PendingApproval, PenaltyStatus::Paid, PenaltyStatus::Waived, PenaltyStatus::Voided], true)) {
                 throw new DomainException("Cannot record payment on a penalty with status {$penalty->status->label()}.");
             }
 
             $currentBalance = round((float) $penalty->balance_remaining, 2);
 
-            if ($amount > $currentBalance) {
-                throw new DomainException("Payment amount ({$amount}) exceeds remaining penalty balance ({$currentBalance}).");
+            if (abs($amount - $currentBalance) >= 0.01) {
+                throw new DomainException("Partial payments and overpayments are not allowed. Payment amount ({$amount}) must equal the full remaining balance ({$currentBalance}).");
             }
 
-            $newPaidAmount = round((float) $penalty->paid_amount + $amount, 2);
-            $newBalance    = max(0.0, round((float) $penalty->amount - $newPaidAmount, 2));
+            $newPaidAmount = round((float) $penalty->paid_amount + $currentBalance, 2);
 
             $penalty->paid_amount       = $newPaidAmount;
-            $penalty->balance_remaining = $newBalance;
-            $penalty->status            = $newBalance <= 0.0
-                ? PenaltyStatus::Paid
-                : PenaltyStatus::PartiallyPaid;
+            $penalty->balance_remaining = 0.0;
+            $penalty->status            = PenaltyStatus::Paid;
             $penalty->save();
 
             $payment = Payment::create(array_merge([
@@ -169,6 +166,63 @@ class Penalty extends Model
 
             return $payment;
         });
+    }
+
+    /**
+     * Approve and finalize a pending automated penalty so it becomes payable.
+     *
+     * @throws InvalidArgumentException|DomainException
+     */
+    public function approve(int $staffId, ?float $finalAmount = null, ?string $notes = null): void
+    {
+        if ($this->status !== PenaltyStatus::PendingApproval) {
+            throw new DomainException("Only pending approval penalties can be approved (current status: {$this->status->label()}).");
+        }
+
+        $attributes = [
+            'status'      => PenaltyStatus::Unpaid,
+            'assessed_by' => $staffId,
+        ];
+
+        if ($finalAmount !== null) {
+            $roundedAmount = round($finalAmount, 2);
+
+            if ($roundedAmount <= 0) {
+                throw new InvalidArgumentException('Approved penalty amount must be greater than zero.');
+            }
+
+            $attributes['amount']            = $roundedAmount;
+            $attributes['balance_remaining'] = max(0.0, round($roundedAmount - (float) $this->paid_amount, 2));
+        }
+
+        if ($notes !== null && mb_trim($notes) !== '') {
+            $attributes['assessment_notes'] = mb_trim($notes);
+        }
+
+        $this->update($attributes);
+    }
+
+    /**
+     * Determine whether this penalty is finalized and eligible to be paid by the borrower.
+     * Loan-linked penalties require the borrowed item to be returned first.
+     */
+    public function isPayableByBorrower(): bool
+    {
+        if (! in_array($this->status, [PenaltyStatus::Unpaid, PenaltyStatus::PartiallyPaid], true)) {
+            return false;
+        }
+
+        if ((float) $this->balance_remaining <= 0) {
+            return false;
+        }
+
+        if ($this->loan_id !== null) {
+            $loan = $this->loan;
+
+            return $loan !== null && $loan->returned_at !== null;
+        }
+
+        return true;
     }
 
     /**
