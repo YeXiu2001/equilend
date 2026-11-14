@@ -88,14 +88,14 @@
                                             <span class="text-xs font-medium">{{ $row->assignedUser->name }}</span>
                                         </div>
                                     @else
-                                        <span class="badge badge-ghost badge-sm text-base-content/50">{{ __('Unassigned') }}</span>
+                                        <span class="text-xs text-base-content/50 italic">{{ __('Unassigned') }}</span>
                                     @endif
                                 </td>
                                 <td>
                                     @if ($row->is_active)
-                                        <span class="badge badge-success badge-sm text-success-content font-medium">{{ __('Active') }}</span>
+                                        <span class="badge badge-success badge-sm text-success-content font-medium whitespace-nowrap">{{ __('Active') }}</span>
                                     @else
-                                        <span class="badge badge-ghost badge-sm font-medium">{{ __('Inactive') }}</span>
+                                        <span class="badge badge-ghost badge-sm font-medium whitespace-nowrap">{{ __('Inactive') }}</span>
                                     @endif
                                 </td>
                                 <td class="text-xs text-base-content/70">
