@@ -64,8 +64,14 @@ it('dispatches success alert after saving', function () {
         ->assertDispatched('alert:dialog', function (string $event, array $params) {
             return $event === 'alert:dialog' &&
                 $params['type'] === 'success' &&
-                $params['title'] === 'Done!';
+                $params['title'] === 'Done!' &&
+                $params['description'] === 'Profile updated successfully.';
         });
+});
+
+it('does not render delete profile option', function () {
+    Livewire::test(Information::class)
+        ->assertDontSeeLivewire(App\Livewire\User\Profile\Delete::class);
 });
 
 it('validates photo is an image', function () {
@@ -77,13 +83,22 @@ it('validates photo is an image', function () {
         ->assertHasErrors(['photo' => 'image']);
 });
 
-it('validates photo size cannot exceed 2mb', function () {
-    $file = UploadedFile::fake()->image('avatar.jpg')->size(2049);
+it('validates photo size cannot exceed 5mb', function () {
+    $file = UploadedFile::fake()->image('avatar.jpg')->size(5121);
 
     Livewire::test(Information::class)
         ->set('photo', $file)
         ->call('save')
         ->assertHasErrors(['photo' => 'max']);
+});
+
+it('allows photo upload up to 5mb', function () {
+    $file = UploadedFile::fake()->image('avatar.jpg')->size(5120);
+
+    Livewire::test(Information::class)
+        ->set('photo', $file)
+        ->call('save')
+        ->assertHasNoErrors();
 });
 
 it('uploads and updates profile photo in database and storage', function () {
