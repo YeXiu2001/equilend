@@ -14,6 +14,7 @@ use App\Enums\PenaltyType;
 use App\Models\Reservation;
 use App\Enums\PenaltyStatus;
 use App\Models\Organization;
+use App\Enums\ItemUnitStatus;
 use App\Models\PaymentMethod;
 use App\Enums\ReservationStatus;
 use App\Livewire\Circulation\Desk;
@@ -142,13 +143,20 @@ it('records a payment, reduces balance, and issues a receipt number', function (
         ->set('paymentMethodId', $cash->id)
         ->set('paymentAmount', '400')
         ->call('submitPayment')
+        ->assertHasErrors(['paymentAmount']);
+
+    Livewire::test(PenaltiesIndex::class)
+        ->call('openPaymentModal', $penalty->id)
+        ->set('paymentMethodId', $cash->id)
+        ->set('paymentAmount', '1000')
+        ->call('submitPayment')
         ->assertHasNoErrors();
 
     $penalty->refresh();
 
-    expect((float) $penalty->paid_amount)->toBe(400.00)
-        ->and((float) $penalty->balance_remaining)->toBe(600.00)
-        ->and($penalty->status)->toBe(PenaltyStatus::PartiallyPaid);
+    expect((float) $penalty->paid_amount)->toBe(1000.00)
+        ->and((float) $penalty->balance_remaining)->toBe(0.00)
+        ->and($penalty->status)->toBe(PenaltyStatus::Paid);
 
     $payment = Payment::where('penalty_id', $penalty->id)->first();
     expect($payment)->not->toBeNull()
@@ -316,6 +324,103 @@ it('scopes borrower portal views to the authenticated student and blocks suspend
     expect(Reservation::where('user_id', $studentA->id)->count())->toBe($beforeCount);
 });
 
+it('enforces enabled payment channels on finance penalties and hides cash from student portal penalties', function (): void {
+    $org   = Organization::factory()->create(['code' => 'CCS']);
+    $admin = User::factory()->create();
+    $admin->assignRole('organization_admin');
+    $admin->organizations()->attach($org->id, ['role' => 'admin']);
+    $student = User::factory()->create();
+    $student->assignRole('member');
+    $student->organizations()->attach($org->id, ['role' => 'member']);
+
+    $cash = PaymentMethod::firstOrCreate(
+        ['payment_code' => 'cash'],
+        ['name' => 'Cash', 'is_active' => true]
+    );
+    $gcash = PaymentMethod::firstOrCreate(
+        ['payment_code' => 'gcash'],
+        ['name' => 'GCash', 'is_active' => true]
+    );
+    $maya = PaymentMethod::firstOrCreate(
+        ['payment_code' => 'maya'],
+        ['name' => 'Maya', 'is_active' => true]
+    );
+
+    // Cash enabled in org config, GCash disabled, Maya not configured
+    $org->organizationPaymentMethods()->create([
+        'payment_method_id' => $cash->id,
+        'account_name'      => '',
+        'account_numbers'   => [],
+        'is_enabled'        => true,
+    ]);
+    $org->organizationPaymentMethods()->create([
+        'payment_method_id' => $gcash->id,
+        'account_name'      => 'CCS Cashiers',
+        'account_numbers'   => ['09171112222'],
+        'is_enabled'        => false,
+    ]);
+
+    $penalty = Penalty::factory()->unpaid()->create([
+        'organization_id'   => $org->id,
+        'user_id'           => $student->id,
+        'amount'            => 150.00,
+        'paid_amount'       => 0,
+        'balance_remaining' => 150.00,
+    ]);
+
+    // Student portal: no digital payment is enabled -> cash must NOT be displayed, show online payment unavailable notice
+    Auth::login($student);
+
+    $portal = Livewire::test(BorrowerPenalties::class)
+        ->assertSee('This organization does not allow online payment')
+        ->assertDontSee('Pay Online');
+
+    expect($portal->instance()->paymentChannels)->toHaveCount(0);
+
+    $portal->call('openPayModal', $penalty->id)
+        ->assertSet('payModal', false);
+
+    // Finance penalties: only cash is available; submitting disabled GCash fails validation
+    Auth::login($admin);
+
+    $finance = Livewire::test(PenaltiesIndex::class)
+        ->assertDontSee('Assess Penalty')
+        ->call('openPaymentModal', $penalty->id);
+
+    expect($finance->instance()->paymentMethods->pluck('id')->all())->toBe([$cash->id]);
+
+    $finance->set('paymentMethodId', $gcash->id)
+        ->set('referenceNumber', 'GCASH-123456')
+        ->call('submitPayment')
+        ->assertHasErrors(['paymentMethodId']);
+
+    // Enable GCash -> now both admin finance and student portal see GCash (student still does NOT see Cash)
+    $org->organizationPaymentMethods()
+        ->where('payment_method_id', $gcash->id)
+        ->update(['is_enabled' => true]);
+
+    Auth::login($student);
+
+    $portalWithDigital = Livewire::test(BorrowerPenalties::class)
+        ->assertSee('GCash')
+        ->assertDontSee('This organization does not allow online payment');
+
+    expect($portalWithDigital->instance()->paymentChannels->pluck('payment_method_id')->all())
+        ->toBe([$gcash->id]);
+
+    // Admin can record Cash payment without reference number
+    Auth::login($admin);
+
+    Livewire::test(PenaltiesIndex::class)
+        ->call('openPaymentModal', $penalty->id)
+        ->set('paymentMethodId', $cash->id)
+        ->set('referenceNumber', '')
+        ->call('submitPayment')
+        ->assertHasNoErrors();
+
+    expect($penalty->fresh()->status)->toBe(PenaltyStatus::Paid);
+});
+
 it('forbids members from accessing staff inventory and allows eligible borrowers to reserve via portal browse', function (): void {
     $org     = Organization::factory()->create(['code' => 'CCS']);
     $student = User::factory()->create();
@@ -352,4 +457,349 @@ it('forbids members from accessing staff inventory and allows eligible borrowers
         ->assertHasNoErrors();
 
     expect(Reservation::where('user_id', $student->id)->where('item_id', $item->id)->count())->toBe(1);
+});
+
+it('supports table and card views, modal filters, and equipment-name-only search on portal browse', function (): void {
+    $orgA = Organization::factory()->create(['code' => 'CCS']);
+    $orgB = Organization::factory()->create(['code' => 'COE']);
+
+    $student = User::factory()->create();
+    $student->assignRole('member');
+    $student->organizations()->attach($orgA->id, ['role' => 'member']);
+
+    $oscilloscope = Item::factory()->create([
+        'organization_id' => $orgA->id,
+        'name'            => 'Digital Oscilloscope',
+        'brand'           => 'UniqueBrandXYZ',
+        'model_number'    => 'MOD-999',
+        'is_active'       => true,
+    ]);
+    ItemUnit::factory()->available()->create([
+        'organization_id' => $orgA->id,
+        'item_id'         => $oscilloscope->id,
+    ]);
+
+    $microscope = Item::factory()->create([
+        'organization_id' => $orgB->id,
+        'name'            => 'Optical Microscope',
+        'brand'           => 'Olympus',
+        'is_active'       => true,
+    ]);
+
+    $this->actingAs($student);
+
+    // Search only matches equipment name, not brand or model_number
+    Livewire::test(BrowseEquipment::class)
+        ->assertSet('viewMode', 'table')
+        ->assertSee('Digital Oscilloscope')
+        ->set('search', 'UniqueBrandXYZ')
+        ->assertDontSee('Digital Oscilloscope')
+        ->set('search', 'Oscilloscope')
+        ->assertSee('Digital Oscilloscope')
+        ->set('viewMode', 'grid')
+        ->assertSee('Digital Oscilloscope');
+
+    // Filter modal apply and reset
+    Livewire::test(BrowseEquipment::class)
+        ->call('openFilterModal')
+        ->assertSet('filterModal', true)
+        ->set('filterOrganizationId', (string) $orgB->id)
+        ->set('filterAvailability', 'all')
+        ->call('applyFilters')
+        ->assertSet('filterModal', false)
+        ->assertSee('Optical Microscope')
+        ->assertDontSee('Digital Oscilloscope')
+        ->call('resetFilters')
+        ->assertSet('selectedOrganizationId', 'all')
+        ->assertSee('Digital Oscilloscope')
+        ->assertSee('Optical Microscope');
+});
+
+it('supports equipment name search, modal filter, and infinite scroll on portal reservations', function (): void {
+    $org     = Organization::factory()->create(['code' => 'CCS']);
+    $student = User::factory()->create();
+    $student->assignRole('member');
+    $student->organizations()->attach($org->id, ['role' => 'member']);
+
+    $oscilloscope = Item::factory()->create([
+        'organization_id' => $org->id,
+        'name'            => 'Alpha Oscilloscope',
+        'is_active'       => true,
+    ]);
+    $multimeter = Item::factory()->create([
+        'organization_id' => $org->id,
+        'name'            => 'Beta Multimeter',
+        'is_active'       => true,
+    ]);
+
+    for ($i = 0; $i < 11; $i++) {
+        Reservation::factory()->create([
+            'organization_id' => $org->id,
+            'user_id'         => $student->id,
+            'item_id'         => $oscilloscope->id,
+            'status'          => ReservationStatus::Pending,
+        ]);
+    }
+
+    Reservation::factory()->create([
+        'organization_id' => $org->id,
+        'user_id'         => $student->id,
+        'item_id'         => $multimeter->id,
+        'status'          => ReservationStatus::Approved,
+    ]);
+
+    $this->actingAs($student);
+
+    Livewire::test(BorrowerReservations::class)
+        ->assertSet('totalCount', 12)
+        ->assertSet('hasMore', true)
+        ->call('loadMore')
+        ->assertSet('limit', 20)
+        ->assertSet('hasMore', false)
+        ->set('search', 'Beta Multimeter')
+        ->assertSee('Beta Multimeter')
+        ->assertDontSee('Alpha Oscilloscope')
+        ->set('search', '')
+        ->call('openFilterModal')
+        ->assertSet('filterModal', true)
+        ->set('filterStatus', 'approved')
+        ->call('applyFilters')
+        ->assertSet('filterModal', false)
+        ->assertSee('Beta Multimeter')
+        ->assertDontSee('Alpha Oscilloscope')
+        ->call('resetFilters')
+        ->assertSet('statusFilter', 'all')
+        ->assertSee('Alpha Oscilloscope');
+});
+
+it('displays clear lender details, specs modal, and equipment name search on portal loans', function (): void {
+    $org = Organization::factory()->create([
+        'name' => 'College of Computer Studies',
+        'code' => 'CCS',
+    ]);
+    $staff   = User::factory()->create(['name' => 'Engr. Staff']);
+    $student = User::factory()->create();
+    $student->assignRole('member');
+    $student->organizations()->attach($org->id, ['role' => 'member']);
+
+    $oscilloscope = Item::factory()->create([
+        'organization_id' => $org->id,
+        'name'            => 'Digital Oscilloscope',
+        'specifications'  => ['bandwidth' => '100MHz'],
+    ]);
+    $unitA = ItemUnit::factory()->available()->create([
+        'organization_id' => $org->id,
+        'item_id'         => $oscilloscope->id,
+    ]);
+
+    $multimeter = Item::factory()->create([
+        'organization_id' => $org->id,
+        'name'            => 'Bench Multimeter',
+    ]);
+    $unitB = ItemUnit::factory()->available()->create([
+        'organization_id' => $org->id,
+        'item_id'         => $multimeter->id,
+    ]);
+
+    Loan::factory()->create([
+        'organization_id' => $org->id,
+        'user_id'         => $student->id,
+        'item_id'         => $oscilloscope->id,
+        'item_unit_id'    => $unitA->id,
+        'issued_by'       => $staff->id,
+        'status'          => LoanStatus::Active,
+        'returned_at'     => null,
+    ]);
+
+    Loan::factory()->create([
+        'organization_id' => $org->id,
+        'user_id'         => $student->id,
+        'item_id'         => $multimeter->id,
+        'item_unit_id'    => $unitB->id,
+        'issued_by'       => $staff->id,
+        'status'          => LoanStatus::Active,
+        'returned_at'     => null,
+    ]);
+
+    $this->actingAs($student);
+
+    Livewire::test(BorrowerActiveLoans::class)
+        ->assertSee('College of Computer Studies')
+        ->assertSee('Issued by Engr. Staff')
+        ->assertSee('Digital Oscilloscope')
+        ->assertSee('Bench Multimeter')
+        ->set('search', 'Digital Oscilloscope')
+        ->assertSee('Digital Oscilloscope')
+        ->assertDontSee('Bench Multimeter')
+        ->call('openSpecsModal', $oscilloscope->id)
+        ->assertSet('specsModal', true)
+        ->assertSee('100MHz');
+});
+
+it('shows active, overdue, and returned loans with infinite scroll and equipment name search on portal history', function (): void {
+    $org     = Organization::factory()->create(['code' => 'CCS']);
+    $student = User::factory()->create();
+    $student->assignRole('member');
+    $student->organizations()->attach($org->id, ['role' => 'member']);
+
+    $oscilloscope = Item::factory()->create([
+        'organization_id' => $org->id,
+        'name'            => 'Active Oscilloscope',
+    ]);
+    $overdueItem = Item::factory()->create([
+        'organization_id' => $org->id,
+        'name'            => 'Overdue Multimeter',
+    ]);
+    $returnedItem = Item::factory()->create([
+        'organization_id' => $org->id,
+        'name'            => 'Returned Tripod',
+    ]);
+
+    $unitActive = ItemUnit::factory()->available()->create(['organization_id' => $org->id, 'item_id' => $oscilloscope->id]);
+    Loan::factory()->create([
+        'organization_id' => $org->id,
+        'user_id'         => $student->id,
+        'item_id'         => $oscilloscope->id,
+        'item_unit_id'    => $unitActive->id,
+        'status'          => LoanStatus::Active,
+        'due_at'          => now()->addDays(2),
+        'returned_at'     => null,
+    ]);
+
+    $unitOverdue = ItemUnit::factory()->available()->create(['organization_id' => $org->id, 'item_id' => $overdueItem->id]);
+    Loan::factory()->create([
+        'organization_id' => $org->id,
+        'user_id'         => $student->id,
+        'item_id'         => $overdueItem->id,
+        'item_unit_id'    => $unitOverdue->id,
+        'status'          => LoanStatus::Overdue,
+        'due_at'          => now()->subDay(),
+        'returned_at'     => null,
+    ]);
+
+    for ($i = 0; $i < 11; $i++) {
+        $unit = ItemUnit::factory()->available()->create(['organization_id' => $org->id, 'item_id' => $returnedItem->id]);
+        Loan::factory()->create([
+            'organization_id' => $org->id,
+            'user_id'         => $student->id,
+            'item_id'         => $returnedItem->id,
+            'item_unit_id'    => $unit->id,
+            'status'          => LoanStatus::Returned,
+            'borrowed_at'     => now()->subDays(5 + $i),
+            'due_at'          => now()->subDays(3 + $i),
+            'returned_at'     => now()->subDays(4 + $i),
+        ]);
+    }
+
+    $this->actingAs($student);
+
+    Livewire::test(App\Livewire\Borrower\History::class)
+        ->assertDontSee('Punctuality Rate')
+        ->assertDontSee('Total Returned')
+        ->assertSee('Active Oscilloscope')
+        ->assertSee('Needs Return')
+        ->assertSee('Overdue Multimeter')
+        ->assertSee('Overdue')
+        ->assertSet('totalCount', 13)
+        ->assertSet('hasMore', true)
+        ->call('loadMore')
+        ->assertSet('limit', 24)
+        ->assertSet('hasMore', false)
+        ->set('search', 'Overdue Multimeter')
+        ->assertSee('Overdue Multimeter')
+        ->assertDontSee('Active Oscilloscope');
+});
+
+it('allows borrowers to cancel approved reservations and releases any reserved unit', function (): void {
+    $org     = Organization::factory()->create(['code' => 'CCS']);
+    $student = User::factory()->create();
+    $student->assignRole('member');
+    $student->organizations()->attach($org->id, ['role' => 'member']);
+
+    $item = Item::factory()->create(['organization_id' => $org->id, 'name' => 'Portable Projector']);
+    $unit = ItemUnit::factory()->create([
+        'organization_id' => $org->id,
+        'item_id'         => $item->id,
+        'status'          => ItemUnitStatus::Reserved,
+    ]);
+
+    $approved = Reservation::factory()->create([
+        'organization_id' => $org->id,
+        'user_id'         => $student->id,
+        'item_id'         => $item->id,
+        'item_unit_id'    => $unit->id,
+        'status'          => ReservationStatus::Approved,
+    ]);
+
+    $checkedOut = Reservation::factory()->create([
+        'organization_id' => $org->id,
+        'user_id'         => $student->id,
+        'item_id'         => $item->id,
+        'status'          => ReservationStatus::CheckedOut,
+    ]);
+
+    $this->actingAs($student);
+
+    Livewire::test(BorrowerReservations::class)
+        ->call('openCancelModal', $approved->id)
+        ->assertSet('cancelModal', true)
+        ->assertSee('Portable Projector')
+        ->assertSee('Yes, Cancel Reservation')
+        ->call('confirmCancelReservation')
+        ->assertSet('cancelModal', false)
+        ->call('cancelReservation', $checkedOut->id);
+
+    expect($approved->fresh()->status)->toBe(ReservationStatus::Cancelled)
+        ->and($unit->fresh()->status)->toBe(ItemUnitStatus::Available)
+        ->and($checkedOut->fresh()->status)->toBe(ReservationStatus::CheckedOut);
+});
+
+it('limits a student to one active reservation per equipment item', function (): void {
+    $org     = Organization::factory()->create(['code' => 'CCS']);
+    $student = User::factory()->create();
+    $student->assignRole('member');
+    $student->organizations()->attach($org->id, ['role' => 'member']);
+
+    $item = Item::factory()->create(['organization_id' => $org->id, 'is_active' => true]);
+    ItemUnit::factory()->available()->count(2)->create([
+        'organization_id' => $org->id,
+        'item_id'         => $item->id,
+    ]);
+
+    $this->actingAs($student);
+
+    // First reservation succeeds
+    Livewire::test(BrowseEquipment::class)
+        ->call('openBookingModal', $item->id)
+        ->assertSet('bookingModal', true)
+        ->set('bookingStartTime', now()->addDay()->format('Y-m-d\TH:i'))
+        ->set('bookingEndTime', now()->addDays(2)->format('Y-m-d\TH:i'))
+        ->set('bookingPurpose', 'First lab experiment')
+        ->call('submitBooking')
+        ->assertHasNoErrors()
+        ->assertSee('Reserved');
+
+    expect(Reservation::where('user_id', $student->id)->where('item_id', $item->id)->count())->toBe(1);
+
+    // Second reservation for the same equipment is blocked while active
+    Livewire::test(BrowseEquipment::class)
+        ->call('openBookingModal', $item->id)
+        ->assertSet('bookingModal', false)
+        ->assertDispatched('alert:dialog')
+        ->set('bookingItemId', $item->id)
+        ->set('bookingStartTime', now()->addDays(3)->format('Y-m-d\TH:i'))
+        ->set('bookingEndTime', now()->addDays(4)->format('Y-m-d\TH:i'))
+        ->set('bookingPurpose', 'Duplicate booking attempt')
+        ->call('submitBooking')
+        ->assertDispatched('alert:dialog');
+
+    expect(Reservation::where('user_id', $student->id)->where('item_id', $item->id)->count())->toBe(1);
+
+    // After cancelling the first reservation, student can reserve the same equipment again
+    $reservation = Reservation::where('user_id', $student->id)->where('item_id', $item->id)->firstOrFail();
+    $reservation->cancel();
+
+    Livewire::test(BrowseEquipment::class)
+        ->call('openBookingModal', $item->id)
+        ->assertSet('bookingModal', true);
 });
