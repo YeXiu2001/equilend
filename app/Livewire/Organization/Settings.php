@@ -112,16 +112,18 @@ class Settings extends Component
         $this->paymentConfigs = [];
 
         foreach ($this->availablePaymentMethods as $pm) {
+            $isCash = $pm->isCash();
+
             if ($existingConfigs->has($pm->id)) {
                 $config                        = $existingConfigs->get($pm->id);
                 $this->paymentConfigs[$pm->id] = [
-                    'is_enabled'      => (bool) $config->is_enabled,
+                    'is_enabled'      => $isCash ? true : (bool) $config->is_enabled,
                     'account_name'    => (string) $config->account_name,
                     'account_numbers' => ! empty($config->account_numbers) ? array_values($config->account_numbers) : [''],
                 ];
             } else {
                 $this->paymentConfigs[$pm->id] = [
-                    'is_enabled'      => false,
+                    'is_enabled'      => $isCash,
                     'account_name'    => '',
                     'account_numbers' => [''],
                 ];
@@ -166,7 +168,16 @@ class Settings extends Component
             'description' => ['nullable', 'string', 'max:1000'],
         ];
 
+        $cashIds = $this->availablePaymentMethods
+            ->filter(fn (PaymentMethod $pm): bool => $pm->isCash())
+            ->pluck('id')
+            ->all();
+
         foreach ($this->paymentConfigs as $pmId => $config) {
+            if (in_array((int) $pmId, $cashIds, true)) {
+                continue;
+            }
+
             if (! empty($config['is_enabled'])) {
                 $rules["paymentConfigs.{$pmId}.account_name"]      = ['required', 'string', 'max:255'];
                 $rules["paymentConfigs.{$pmId}.account_numbers"]   = ['required', 'array', 'min:1'];
@@ -210,19 +221,33 @@ class Settings extends Component
             'description' => $validated['description'],
         ]);
 
+        $cashIds = $this->availablePaymentMethods
+            ->filter(fn (PaymentMethod $pm): bool => $pm->isCash())
+            ->pluck('id')
+            ->all();
+
         // 2. Update Payment Methods Configurations
         foreach ($this->paymentConfigs as $pmId => $config) {
-            $cleanNumbers = array_values(array_filter(
-                $config['account_numbers'],
-                fn ($num) => mb_trim((string) $num) !== ''
-            ));
+            $isCash       = in_array((int) $pmId, $cashIds, true);
+            $cleanNumbers = $isCash
+                ? []
+                : array_values(array_filter(
+                    $config['account_numbers'],
+                    fn ($num) => mb_trim((string) $num) !== ''
+                ));
+
+            $isEnabled = $isCash ? true : (bool) ($config['is_enabled'] ?? false);
+
+            if ($isCash) {
+                $this->paymentConfigs[$pmId]['is_enabled'] = true;
+            }
 
             $this->organization->organizationPaymentMethods()->updateOrCreate(
                 ['payment_method_id' => $pmId],
                 [
-                    'account_name'    => $config['account_name'] ?? '',
+                    'account_name'    => $isCash ? '' : ($config['account_name'] ?? ''),
                     'account_numbers' => $cleanNumbers,
-                    'is_enabled'      => (bool) ($config['is_enabled'] ?? false),
+                    'is_enabled'      => $isEnabled,
                 ]
             );
         }
