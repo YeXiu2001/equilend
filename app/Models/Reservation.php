@@ -39,6 +39,18 @@ class Reservation extends Model
     ];
 
     /**
+     * Determine whether a user already has an active (pending or approved) reservation for an equipment item.
+     */
+    public static function hasActiveForUserAndItem(int $userId, int $itemId): bool
+    {
+        return static::query()
+            ->where('user_id', $userId)
+            ->where('item_id', $itemId)
+            ->whereIn('status', [ReservationStatus::Pending, ReservationStatus::Approved])
+            ->exists();
+    }
+
+    /**
      * Organization (college) where the reservation was booked.
      *
      * @return BelongsTo<Organization, $this>
@@ -157,9 +169,17 @@ class Reservation extends Model
     }
 
     /**
-     * Approve the reservation, optionally binding a physical item unit.
+     * Check if an approved reservation was not picked up by its scheduled start time.
      */
-    public function approve(User|int $approver, ?ItemUnit $unit = null): void
+    public function isMissedPickup(): bool
+    {
+        return $this->isApproved() && $this->start_time !== null && $this->start_time->isPast();
+    }
+
+    /**
+     * Approve the reservation and reserve the assigned physical item unit.
+     */
+    public function approve(User|int $approver, ItemUnit $unit): void
     {
         $approverId = is_int($approver) ? $approver : $approver->id;
 
@@ -167,12 +187,10 @@ class Reservation extends Model
             'status'       => ReservationStatus::Approved,
             'approved_by'  => $approverId,
             'approved_at'  => now(),
-            'item_unit_id' => $unit?->id ?? $this->item_unit_id,
+            'item_unit_id' => $unit->id,
         ]);
 
-        if ($unit !== null) {
-            $unit->update(['status' => ItemUnitStatus::Reserved]);
-        }
+        $unit->update(['status' => ItemUnitStatus::Reserved]);
     }
 
     /**
