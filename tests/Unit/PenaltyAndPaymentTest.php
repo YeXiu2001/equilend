@@ -16,7 +16,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(Tests\TestCase::class, RefreshDatabase::class);
 
-it('recalculates balance and transitions status on partial and full payments', function (): void {
+it('rejects partial payments and transitions status to paid on full payment', function (): void {
     $org   = Organization::factory()->create();
     $user  = User::factory()->create();
     $staff = User::factory()->create();
@@ -36,18 +36,12 @@ it('recalculates balance and transitions status on partial and full payments', f
         'status'            => PenaltyStatus::Unpaid,
     ]);
 
-    $firstPayment = $penalty->recordPayment(400.00, [
+    expect(fn () => $penalty->recordPayment(400.00, [
         'payment_method_id' => $cash->id,
         'received_by'       => $staff->id,
-    ]);
+    ]))->toThrow(DomainException::class);
 
-    expect((float) $penalty->paid_amount)->toBe(400.00)
-        ->and((float) $penalty->balance_remaining)->toBe(600.00)
-        ->and($penalty->status)->toBe(PenaltyStatus::PartiallyPaid)
-        ->and($firstPayment->status)->toBe(PaymentStatus::Verified)
-        ->and((float) $firstPayment->amount_paid)->toBe(400.00);
-
-    $secondPayment = $penalty->recordPayment(600.00, [
+    $payment = $penalty->recordPayment(1000.00, [
         'payment_method_id' => $cash->id,
         'received_by'       => $staff->id,
     ]);
@@ -55,8 +49,9 @@ it('recalculates balance and transitions status on partial and full payments', f
     expect((float) $penalty->paid_amount)->toBe(1000.00)
         ->and((float) $penalty->balance_remaining)->toBe(0.00)
         ->and($penalty->status)->toBe(PenaltyStatus::Paid)
-        ->and($penalty->payments()->count())->toBe(2)
-        ->and($secondPayment->receipt_number)->not->toBe($firstPayment->receipt_number);
+        ->and($payment->status)->toBe(PaymentStatus::Verified)
+        ->and((float) $payment->amount_paid)->toBe(1000.00)
+        ->and($penalty->payments()->count())->toBe(1);
 });
 
 it('rejects overpayments and non-positive payment amounts', function (): void {
