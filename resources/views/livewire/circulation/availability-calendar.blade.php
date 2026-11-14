@@ -13,7 +13,7 @@
                         @endforeach
                     </select>
                 @else
-                    <span class="badge badge-neutral badge-sm font-semibold gap-1">
+                    <span class="inline-flex items-center gap-1 text-xs font-semibold text-base-content/80 bg-base-200 border border-base-300 px-2.5 py-1 rounded-md whitespace-nowrap">
                         <x-heroicon-o-academic-cap class="w-3.5 h-3.5" />
                         {{ auth()->user()?->organization?->code ?? 'Hub' }}
                     </span>
