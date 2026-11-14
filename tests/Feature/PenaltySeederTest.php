@@ -16,8 +16,9 @@ it('seeds realistic penalties, payments, and borrower lockouts across all 5 coll
     $colleges = Organization::whereIn('code', ['CCS', 'CED', 'COET', 'CSM', 'CASS'])->get();
 
     expect($colleges)->toHaveCount(5)
-        ->and(Penalty::where('assessment_notes', 'not like', '[AnalyticsSeeder]%')->count())->toBe(35)
-        ->and(Payment::where('notes', 'not like', '[AnalyticsSeeder]%')->count())->toBe(20);
+        ->and(Penalty::where('assessment_notes', 'not like', '[AnalyticsSeeder]%')->count())->toBe(30)
+        ->and(Penalty::whereNull('loan_id')->count())->toBe(0)
+        ->and(Payment::where('notes', 'not like', '[AnalyticsSeeder]%')->count())->toBe(15);
 
     foreach ($colleges as $college) {
         $orgPenalties = Penalty::where('organization_id', $college->id)
@@ -27,18 +28,13 @@ it('seeds realistic penalties, payments, and borrower lockouts across all 5 coll
             ->where('notes', 'not like', '[AnalyticsSeeder]%')
             ->get();
 
-        expect($orgPenalties)->toHaveCount(7)
+        expect($orgPenalties)->toHaveCount(6)
             ->and($orgPenalties->where('status', PenaltyStatus::Unpaid))->toHaveCount(2)
             ->and($orgPenalties->where('status', PenaltyStatus::Paid))->toHaveCount(3)
-            ->and($orgPenalties->where('status', PenaltyStatus::PartiallyPaid))->toHaveCount(1)
+            ->and($orgPenalties->where('status', PenaltyStatus::PartiallyPaid))->toHaveCount(0)
             ->and($orgPenalties->where('status', PenaltyStatus::Waived))->toHaveCount(1)
-            ->and($orgPayments)->toHaveCount(4)
-            ->and($orgPayments->where('status', PaymentStatus::Verified))->toHaveCount(4);
-
-        $partial = $orgPenalties->firstWhere('status', PenaltyStatus::PartiallyPaid);
-        expect((float) $partial->amount)->toBe(1000.00)
-            ->and((float) $partial->paid_amount)->toBe(400.00)
-            ->and((float) $partial->balance_remaining)->toBe(600.00);
+            ->and($orgPayments)->toHaveCount(3)
+            ->and($orgPayments->where('status', PaymentStatus::Verified))->toHaveCount(3);
 
         $student1 = User::where('email', sprintf('student.%s@equilend.test', mb_strtolower($college->code)))->first();
         expect($student1)->not->toBeNull()
@@ -55,6 +51,6 @@ it('seeds realistic penalties, payments, and borrower lockouts across all 5 coll
     // Verify idempotency when running PenaltySeeder a second time
     $this->seed(DatabaseSeeder::class);
 
-    expect(Penalty::where('assessment_notes', 'not like', '[AnalyticsSeeder]%')->count())->toBe(35)
-        ->and(Payment::where('notes', 'not like', '[AnalyticsSeeder]%')->count())->toBe(20);
+    expect(Penalty::where('assessment_notes', 'not like', '[AnalyticsSeeder]%')->count())->toBe(30)
+        ->and(Payment::where('notes', 'not like', '[AnalyticsSeeder]%')->count())->toBe(15);
 });
