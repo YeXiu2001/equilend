@@ -71,9 +71,9 @@
                                 <td class="text-xs text-base-content/70">{{ $row->description ?? '-' }}</td>
                                 <td>
                                     @if ($row->is_active)
-                                        <span class="badge badge-success badge-sm text-success-content font-medium">{{ __('Active') }}</span>
+                                        <span class="badge badge-success badge-sm text-success-content font-medium whitespace-nowrap">{{ __('Active') }}</span>
                                     @else
-                                        <span class="badge badge-ghost badge-sm font-medium">{{ __('Inactive') }}</span>
+                                        <span class="badge badge-ghost badge-sm font-medium whitespace-nowrap">{{ __('Inactive') }}</span>
                                     @endif
                                 </td>
                                 <td class="text-xs text-base-content/70">
