@@ -35,4 +35,16 @@ enum ItemUnitCondition: string
             self::Poor            => 'badge-error',
         };
     }
+
+    /**
+     * Get the semantic text color class for this condition.
+     */
+    public function textClass(): string
+    {
+        return match ($this) {
+            self::New, self::Good => 'text-success',
+            self::Fair            => 'text-warning',
+            self::Poor            => 'text-error',
+        };
+    }
 }
