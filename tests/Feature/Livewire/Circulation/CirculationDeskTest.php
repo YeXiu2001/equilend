@@ -196,7 +196,7 @@ it('enforces mandatory rejection remarks when rejecting a reservation request', 
         ->and($pendingReservation->fresh()->approved_by)->toBe($this->ccsAdmin->id);
 });
 
-it('approves a pending reservation and optionally allocates a physical unit', function () {
+it('requires a physical unit when approving a pending reservation and reserves it', function () {
     Auth::login($this->ccsAdmin);
 
     $pendingReservation = Reservation::where('organization_id', $this->ccsOrg->id)
@@ -204,21 +204,66 @@ it('approves a pending reservation and optionally allocates a physical unit', fu
         ->firstOrFail();
 
     $unit = ItemUnit::where('item_id', $pendingReservation->item_id)
+        ->where('organization_id', $this->ccsOrg->id)
         ->where('status', ItemUnitStatus::Available)
-        ->first();
+        ->first()
+        ?? ItemUnit::factory()->forItem($pendingReservation->item)->available()->create();
 
+    $initialAvailableCount = $pendingReservation->item->available_units_count;
+
+    // Attempting approval without selecting a physical unit fails validation
     Livewire::test(BookingRequests::class)
         ->call('openApproveModal', $pendingReservation->id)
-        ->set('assignedUnitId', $unit?->id)
+        ->set('assignedUnitId', null)
         ->call('confirmApproval')
+        ->assertHasErrors(['assignedUnitId']);
+
+    expect($pendingReservation->fresh()->isPending())->toBeTrue();
+
+    // Approval with a physical unit succeeds and deducts available units
+    Livewire::test(BookingRequests::class)
+        ->call('openApproveModal', $pendingReservation->id)
+        ->set('assignedUnitId', $unit->id)
+        ->call('confirmApproval')
+        ->assertHasNoErrors()
         ->assertDispatched('alert:dialog');
 
     expect($pendingReservation->fresh()->isApproved())->toBeTrue()
-        ->and($pendingReservation->fresh()->approved_by)->toBe($this->ccsAdmin->id);
+        ->and($pendingReservation->fresh()->approved_by)->toBe($this->ccsAdmin->id)
+        ->and($pendingReservation->fresh()->item_unit_id)->toBe($unit->id)
+        ->and($unit->fresh()->status)->toBe(ItemUnitStatus::Reserved)
+        ->and($pendingReservation->item->fresh()->available_units_count)->toBe($initialAvailableCount - 1);
+});
 
-    if ($unit) {
-        expect($unit->fresh()->status)->toBe(ItemUnitStatus::Reserved);
-    }
+it('shows a missed pickup suggestion for overdue approved bookings and lets admin cancel to release the unit', function () {
+    Auth::login($this->ccsAdmin);
+
+    $item = \App\Models\Item::where('organization_id', $this->ccsOrg->id)->firstOrFail();
+    $unit = ItemUnit::factory()->forItem($item)->available()->create();
+
+    $missedReservation = Reservation::factory()->create([
+        'organization_id' => $this->ccsOrg->id,
+        'user_id'         => $this->ccsStudent->id,
+        'item_id'         => $item->id,
+        'start_time'      => now()->subDay(),
+        'end_time'        => now()->addDay(),
+        'status'          => ReservationStatus::Pending,
+    ]);
+    $missedReservation->approve($this->ccsAdmin, $unit);
+
+    expect($missedReservation->fresh()->isMissedPickup())->toBeTrue()
+        ->and($unit->fresh()->status)->toBe(ItemUnitStatus::Reserved);
+
+    Livewire::test(BookingRequests::class)
+        ->set('statusFilter', 'approved')
+        ->assertSee('Not Picked Up')
+        ->assertSee('Pickup missed — cancel to release unit')
+        ->call('openCancelModal', $missedReservation->id)
+        ->call('confirmCancellation')
+        ->assertDispatched('alert:dialog');
+
+    expect($missedReservation->fresh()->isCancelled())->toBeTrue()
+        ->and($unit->fresh()->status)->toBe(ItemUnitStatus::Available);
 });
 
 it('isolates overdue loans with the overdue tracker filter', function () {
@@ -334,4 +379,86 @@ it('supports month navigation and event inspection on availability calendar', fu
 
     $component->call('goToToday');
     expect($component->get('month'))->toBe(now()->month);
+});
+
+it('searches borrowers across all colleges with minimum 2 characters and limit 10', function () {
+    Auth::login($this->ccsAdmin);
+
+    $coetBorrower = User::factory()->create([
+        'name'  => 'CrossCollege StudentZ',
+        'email' => 'crosscollege.z@equilend.test',
+    ]);
+    $coetBorrower->assignRole('member');
+    $coetBorrower->organizations()->attach($this->coetOrg->id, ['role' => 'member']);
+
+    $component = Livewire::test(Desk::class);
+
+    // Fewer than 2 characters returns no results
+    $component->set('studentSearch', 'C');
+    expect($component->instance()->students)->toHaveCount(0);
+
+    // 2+ characters finds borrower from another college (COET) for CCS desk
+    $component->set('studentSearch', 'CrossCollege');
+    expect($component->instance()->students->pluck('id'))->toContain($coetBorrower->id);
+
+    $component->assertSee('CrossCollege StudentZ')
+        ->assertSee('COET')
+        ->call('selectStudent', $coetBorrower->id)
+        ->assertSet('selectedUserId', $coetBorrower->id);
+});
+
+it('supports walk-in vs reservation mode toggle and searchable approved reservations modal', function () {
+    Auth::login($this->ccsAdmin);
+
+    $unit = ItemUnit::where('organization_id', $this->ccsOrg->id)
+        ->where('status', ItemUnitStatus::Available)
+        ->firstOrFail();
+
+    $targetRes = Reservation::factory()->approved($this->ccsAdmin, $unit)->create([
+        'organization_id' => $this->ccsOrg->id,
+        'user_id'         => $this->ccsStudent->id,
+        'item_id'         => $unit->item_id,
+        'item_unit_id'    => $unit->id,
+    ]);
+
+    $component = Livewire::test(Desk::class)
+        ->assertSet('checkoutSource', 'walkin')
+        ->call('setCheckoutSource', 'reservation')
+        ->assertSet('checkoutSource', 'reservation')
+        ->assertSet('reservationModal', true)
+        ->set('reservationSearch', '#'.$targetRes->id)
+        ->assertSee('#'.$targetRes->id)
+        ->call('applyReservation', $targetRes->id)
+        ->assertSet('reservationModal', false)
+        ->assertSet('selectedReservationId', $targetRes->id)
+        ->call('clearReservation')
+        ->assertSet('selectedReservationId', null)
+        ->assertSet('checkoutSource', 'walkin');
+});
+
+it('supports equipment item and asset tag typeahead selection at the desk', function () {
+    Auth::login($this->ccsAdmin);
+
+    $unit = ItemUnit::with('item')
+        ->where('organization_id', $this->ccsOrg->id)
+        ->where('status', ItemUnitStatus::Available)
+        ->firstOrFail();
+
+    $itemPrefix = mb_substr($unit->item->name, 0, 3);
+    $tagPrefix  = mb_substr($unit->asset_tag, 0, 4);
+
+    Livewire::test(Desk::class)
+        ->set('itemSearch', $itemPrefix)
+        ->assertSee($unit->item->name)
+        ->call('selectItem', $unit->item_id)
+        ->assertSet('selectedItemId', $unit->item_id)
+        ->call('clearSelectedItem')
+        ->assertSet('selectedItemId', null)
+        ->set('unitSearch', $tagPrefix)
+        ->assertSee($unit->asset_tag)
+        ->call('selectUnit', $unit->id)
+        ->assertSet('selectedUnitId', $unit->id)
+        ->assertSet('selectedItemId', $unit->item_id)
+        ->call('clearSelectedUnit')
+        ->assertSet('selectedUnitId', null);
 });
