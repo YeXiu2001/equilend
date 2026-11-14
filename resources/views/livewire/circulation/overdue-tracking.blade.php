@@ -13,7 +13,7 @@
                         @endforeach
                     </select>
                 @else
-                    <span class="badge badge-neutral badge-sm font-semibold gap-1">
+                    <span class="inline-flex items-center gap-1 text-xs font-semibold text-base-content/80 bg-base-200 border border-base-300 px-2.5 py-1 rounded-md whitespace-nowrap">
                         <x-heroicon-o-academic-cap class="w-3.5 h-3.5" />
                         {{ auth()->user()?->organization?->code ?? 'Hub' }}
                     </span>
@@ -48,7 +48,7 @@
                         <x-heroicon-o-clock class="w-4 h-4 text-error" />
                         <span>{{ __('Past-Due Equipment Ledger') }}</span>
                     </span>
-                    <span class="badge badge-error badge-xs font-bold text-error-content">
+                    <span class="badge badge-error badge-xs font-bold text-error-content whitespace-nowrap">
                         {{ $this->totalCount }}
                     </span>
                 </div>
@@ -83,7 +83,7 @@
                                     <div class="space-y-0.5">
                                         <div class="flex items-center gap-1.5 font-bold text-base-content">
                                             <span>{{ $loan->user->name }}</span>
-                                            <span class="badge badge-ghost badge-xs">{{ $loan->organization->code }}</span>
+                                            <span class="text-[11px] font-mono font-semibold text-base-content/75 bg-base-200 px-1.5 py-0.5 rounded whitespace-nowrap">{{ $loan->organization->code }}</span>
                                         </div>
                                         <div class="text-base-content/60 text-[11px]">{{ $loan->user->email }}</div>
                                     </div>
@@ -110,7 +110,7 @@
                                     </div>
                                 </td>
                                 <td>
-                                    <span class="badge badge-xs badge-error font-bold gap-1 py-2 px-2">
+                                    <span class="badge badge-xs badge-error font-bold gap-1 whitespace-nowrap">
                                         <x-heroicon-o-exclamation-triangle class="w-3.5 h-3.5" />
                                         <span>{{ __('Overdue by :time', ['time' => $loan->due_at->diffForHumans(now(), true)]) }}</span>
                                     </span>
