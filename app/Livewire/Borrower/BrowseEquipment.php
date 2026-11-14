@@ -9,7 +9,6 @@ use Livewire\Component;
 use App\Models\Category;
 use App\Models\Reservation;
 use App\Models\Organization;
-use Livewire\WithPagination;
 use App\Enums\ItemUnitStatus;
 use App\Livewire\Traits\Alert;
 use Illuminate\Support\Carbon;
@@ -19,20 +18,40 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Pagination\LengthAwarePaginator;
 
 class BrowseEquipment extends Component
 {
     use Alert;
-    use WithPagination;
+
+    public int $limit = 12;
 
     public string $search = '';
 
+    // Applied Filters
     public string $selectedOrganizationId = 'all';
 
     public string $categoryId = 'all';
 
     public string $availabilityFilter = 'all';
+
+    // Filter Modal state & pending values
+    public bool $filterModal = false;
+
+    public string $filterOrganizationId = 'all';
+
+    public string $filterCategoryId = 'all';
+
+    public string $filterAvailability = 'all';
+
+    public string $viewMode = 'table';
+
+    /**
+     * @var array{column: string, direction: string}
+     */
+    public array $sort = [
+        'column'    => 'name',
+        'direction' => 'asc',
+    ];
 
     // View Specs Modal
     public bool $specsModal = false;
@@ -56,28 +75,106 @@ class BrowseEquipment extends Component
 
         if ($user?->organization) {
             $this->selectedOrganizationId = (string) $user->organization->id;
+            $this->filterOrganizationId   = $this->selectedOrganizationId;
         }
     }
 
     public function updatedSearch(): void
     {
-        $this->resetPage();
+        $this->limit = 12;
     }
 
-    public function updatedSelectedOrganizationId(): void
+    public function updatedFilterOrganizationId(): void
     {
-        $this->categoryId = 'all';
-        $this->resetPage();
+        $this->filterCategoryId = 'all';
     }
 
-    public function updatedCategoryId(): void
+    /**
+     * Sort the equipment catalog by a column.
+     */
+    public function sortBy(string $column): void
     {
-        $this->resetPage();
+        if (! in_array($column, ['name', 'created_at'], true)) {
+            return;
+        }
+
+        if ($this->sort['column'] === $column) {
+            $this->sort['direction'] = $this->sort['direction'] === 'asc' ? 'desc' : 'asc';
+        } else {
+            $this->sort['column']    = $column;
+            $this->sort['direction'] = 'asc';
+        }
+
+        $this->limit = 12;
     }
 
-    public function updatedAvailabilityFilter(): void
+    /**
+     * Increase item limit for infinite scrolling.
+     */
+    public function loadMore(): void
     {
-        $this->resetPage();
+        $this->limit += 12;
+    }
+
+    /**
+     * Open Filter Modal synced with active filters.
+     */
+    public function openFilterModal(): void
+    {
+        $this->filterOrganizationId = $this->selectedOrganizationId;
+        $this->filterCategoryId     = $this->categoryId;
+        $this->filterAvailability   = $this->availabilityFilter;
+        $this->filterModal          = true;
+    }
+
+    /**
+     * Apply pending modal filters to the catalog.
+     */
+    public function applyFilters(): void
+    {
+        $this->selectedOrganizationId = $this->filterOrganizationId;
+        $this->categoryId             = $this->filterCategoryId;
+        $this->availabilityFilter     = $this->filterAvailability;
+        $this->limit                  = 12;
+        $this->filterModal            = false;
+    }
+
+    /**
+     * Reset all filters back to default.
+     */
+    public function resetFilters(): void
+    {
+        $this->selectedOrganizationId = 'all';
+        $this->filterOrganizationId   = 'all';
+        $this->categoryId             = 'all';
+        $this->filterCategoryId       = 'all';
+        $this->availabilityFilter     = 'all';
+        $this->filterAvailability     = 'all';
+        $this->limit                  = 12;
+        $this->filterModal            = false;
+    }
+
+    /**
+     * Count active filters for UI badge/indicator.
+     */
+    #[Computed]
+    public function activeFilterCount(): int
+    {
+        $count = 0;
+
+        if ($this->selectedOrganizationId !== 'all') {
+            $count++;
+        }
+
+        if ($this->categoryId !== 'all') {
+            $count++;
+        }
+
+        if ($this->availabilityFilter !== 'all') {
+            $count++;
+        }
+
+        return $count;
     }
 
     public function openSpecsModal(int $itemId): void
@@ -98,6 +195,12 @@ class BrowseEquipment extends Component
         }
 
         $item = Item::where('is_active', true)->findOrFail($itemId);
+
+        if (Reservation::hasActiveForUserAndItem($user->id, $item->id)) {
+            $this->error('You already have an active reservation for this equipment. Only one reservation per equipment is allowed.');
+
+            return;
+        }
 
         $this->bookingItemId    = $item->id;
         $this->bookingStartTime = now()->addDay()->setTime(9, 0)->format('Y-m-d\TH:i');
@@ -131,6 +234,13 @@ class BrowseEquipment extends Component
 
         $item = Item::where('is_active', true)->findOrFail($this->bookingItemId);
 
+        if (Reservation::hasActiveForUserAndItem($user->id, $item->id)) {
+            $this->error('You already have an active reservation for this equipment. Only one reservation per equipment is allowed.');
+            $this->bookingModal = false;
+
+            return;
+        }
+
         $reservation = Reservation::create([
             'organization_id' => $item->organization_id,
             'user_id'         => $user->id,
@@ -143,7 +253,31 @@ class BrowseEquipment extends Component
 
         $this->bookingModal = false;
         $this->reset(['bookingItemId', 'bookingPurpose']);
+        unset($this->activeReservedItemIds);
         $this->success("Booking request #{$reservation->id} for {$item->name} submitted for staff approval.");
+    }
+
+    /**
+     * Equipment IDs for which the authenticated borrower already has a pending or approved reservation.
+     *
+     * @return list<int>
+     */
+    #[Computed]
+    public function activeReservedItemIds(): array
+    {
+        $userId = Auth::id();
+
+        if (! $userId) {
+            return [];
+        }
+
+        return Reservation::query()
+            ->where('user_id', $userId)
+            ->whereIn('status', [ReservationStatus::Pending, ReservationStatus::Approved])
+            ->pluck('item_id')
+            ->unique()
+            ->values()
+            ->all();
     }
 
     #[Computed]
@@ -155,35 +289,88 @@ class BrowseEquipment extends Component
 
         return Item::with(['organization', 'category'])
             ->withCount([
+                'units',
                 'units as available_units_count' => fn (Builder $q) => $q->where('status', ItemUnitStatus::Available),
             ])
             ->find($this->viewingItemId);
     }
 
     #[Computed]
+    public function bookingItem(): ?Item
+    {
+        if (! $this->bookingItemId) {
+            return null;
+        }
+
+        return Item::with(['organization', 'category'])->find($this->bookingItemId);
+    }
+
+    /**
+     * @return Collection<int, Organization>
+     */
+    #[Computed]
     public function organizations(): Collection
     {
         return Organization::active()->orderBy('code')->get();
     }
 
+    /**
+     * @return Collection<int, Category>
+     */
     #[Computed]
     public function categories(): Collection
     {
+        $orgId = $this->filterModal ? $this->filterOrganizationId : $this->selectedOrganizationId;
+
         return Category::query()
             ->when(
-                $this->selectedOrganizationId !== 'all' && ! empty($this->selectedOrganizationId),
-                fn (Builder $q) => $q->where('organization_id', (int) $this->selectedOrganizationId)
+                $orgId !== 'all' && ! empty($orgId),
+                fn (Builder $q) => $q->where('organization_id', (int) $orgId)
             )
             ->orderBy('name')
             ->get();
     }
 
     #[Computed]
-    public function items(): LengthAwarePaginator
+    public function totalCount(): int
+    {
+        return $this->baseQuery()->count();
+    }
+
+    /**
+     * @return Collection<int, Item>
+     */
+    #[Computed]
+    public function items(): Collection
+    {
+        return $this->baseQuery()
+            ->orderBy($this->sort['column'], $this->sort['direction'])
+            ->limit($this->limit)
+            ->get();
+    }
+
+    #[Computed]
+    public function hasMore(): bool
+    {
+        return $this->items->count() < $this->totalCount;
+    }
+
+    public function render(): View
+    {
+        return view('livewire.borrower.browse-equipment');
+    }
+
+    /**
+     * Base query scoped to active items, equipment name search, and applied filters.
+     *
+     * @return Builder<Item>
+     */
+    protected function baseQuery(): Builder
     {
         return Item::query()
             ->with(['organization', 'category'])
             ->withCount([
+                'units',
                 'units as available_units_count' => fn (Builder $q) => $q->where('status', ItemUnitStatus::Available),
             ])
             ->where('is_active', true)
@@ -200,19 +387,7 @@ class BrowseEquipment extends Component
             })
             ->when(mb_trim($this->search) !== '', function (Builder $q): void {
                 $term = '%'.mb_trim($this->search).'%';
-                $q->where(function (Builder $sub) use ($term): void {
-                    $sub->where('name', 'like', $term)
-                        ->orWhere('brand', 'like', $term)
-                        ->orWhere('model', 'like', $term)
-                        ->orWhere('specifications', 'like', $term);
-                });
-            })
-            ->orderBy('name')
-            ->paginate(12);
-    }
-
-    public function render(): View
-    {
-        return view('livewire.borrower.browse-equipment');
+                $q->where('name', 'like', $term);
+            });
     }
 }
