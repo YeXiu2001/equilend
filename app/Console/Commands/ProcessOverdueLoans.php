@@ -80,8 +80,8 @@ class ProcessOverdueLoans extends Command
                             'amount'            => $fineAmount,
                             'paid_amount'       => 0.00,
                             'balance_remaining' => $fineAmount,
-                            'status'            => PenaltyStatus::Unpaid,
-                            'assessment_notes'  => "Automated overdue fine ({$daysOverdue} day(s) past due at ₱".number_format(self::DAILY_OVERDUE_RATE, 2).'/day).',
+                            'status'            => PenaltyStatus::PendingApproval,
+                            'assessment_notes'  => "Automated overdue fine ({$daysOverdue} day(s) past due at ₱".number_format(self::DAILY_OVERDUE_RATE, 2).'/day) — pending admin approval.',
                             'assessed_by'       => null,
                         ]);
                     });
