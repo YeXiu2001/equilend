@@ -51,6 +51,14 @@ class PaymentMethod extends Model
     }
 
     /**
+     * Determine whether this payment method represents over-the-counter cash.
+     */
+    public function isCash(): bool
+    {
+        return mb_strtolower((string) $this->payment_code) === 'cash';
+    }
+
+    /**
      * Scope a query to only include active payment methods.
      *
      * @param  Builder<PaymentMethod>  $query
