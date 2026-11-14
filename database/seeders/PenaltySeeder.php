@@ -171,7 +171,7 @@ class PenaltySeeder extends Seeder
                     'assessment_notes' => "{$collegeCode} minor accessory replacement fee settled via GCash.",
                 ],
                 [
-                    'loan_id'           => null,
+                    'loan_id'           => $returnedLoan?->id,
                     'item_unit_id'      => $sampleUnit?->id,
                     'amount'            => 300.00,
                     'paid_amount'       => 300.00,
@@ -206,7 +206,7 @@ class PenaltySeeder extends Seeder
                     'assessment_notes' => "{$collegeCode} unreturned carrying pouch replacement settled via Maya.",
                 ],
                 [
-                    'loan_id'           => null,
+                    'loan_id'           => $returnedLoan?->id,
                     'item_unit_id'      => $sampleUnit?->id,
                     'amount'            => 200.00,
                     'paid_amount'       => 200.00,
@@ -233,43 +233,7 @@ class PenaltySeeder extends Seeder
                 ]);
             }
 
-            // 4. Partially Paid Penalty (1 per college: ₱1,000 fine, ₱400 paid via GCash, ₱600 remaining)
-            $partialPenalty = Penalty::updateOrCreate(
-                [
-                    'organization_id'  => $college->id,
-                    'user_id'          => $student2->id,
-                    'type'             => PenaltyType::Damage,
-                    'assessment_notes' => "{$collegeCode} calibration & housing repair assessment (installment settlement).",
-                ],
-                [
-                    'loan_id'           => null,
-                    'item_unit_id'      => $sampleUnit?->id,
-                    'amount'            => 1000.00,
-                    'paid_amount'       => 400.00,
-                    'balance_remaining' => 600.00,
-                    'status'            => PenaltyStatus::PartiallyPaid,
-                    'assessed_by'       => $admin->id,
-                    'waived_reason'     => null,
-                ]
-            );
-
-            if (! Payment::where('penalty_id', $partialPenalty->id)->exists()) {
-                Payment::create([
-                    'organization_id'                => $college->id,
-                    'penalty_id'                     => $partialPenalty->id,
-                    'user_id'                        => $student2->id,
-                    'payment_method_id'              => $gcash?->id,
-                    'organization_payment_method_id' => $orgGcash?->id,
-                    'amount_paid'                    => 400.00,
-                    'reference_number'               => "GC-2026-{$collegeCode}-003",
-                    'paid_at'                        => now()->subHours(12),
-                    'status'                         => PaymentStatus::Verified,
-                    'received_by'                    => $admin->id,
-                    'notes'                          => 'Partial installment received via GCash; ₱600.00 balance remaining.',
-                ]);
-            }
-
-            // 5. Waived Penalty (1 per college)
+            // 4. Waived Penalty (1 per college)
             Penalty::updateOrCreate(
                 [
                     'organization_id'  => $college->id,
@@ -278,7 +242,7 @@ class PenaltySeeder extends Seeder
                     'assessment_notes' => "{$collegeCode} overdue fine reviewed and excused by college administration.",
                 ],
                 [
-                    'loan_id'           => null,
+                    'loan_id'           => $returnedLoan?->id,
                     'item_unit_id'      => $sampleUnit?->id,
                     'amount'            => 250.00,
                     'paid_amount'       => 0.00,
