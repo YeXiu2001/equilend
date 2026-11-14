@@ -6,11 +6,12 @@ namespace App\Enums;
 
 enum PenaltyStatus: string
 {
-    case Unpaid        = 'unpaid';
-    case PartiallyPaid = 'partially_paid';
-    case Paid          = 'paid';
-    case Waived        = 'waived';
-    case Voided        = 'voided';
+    case PendingApproval = 'pending_approval';
+    case Unpaid          = 'unpaid';
+    case PartiallyPaid   = 'partially_paid';
+    case Paid            = 'paid';
+    case Waived          = 'waived';
+    case Voided          = 'voided';
 
     /**
      * Get the human-readable label for the penalty status.
@@ -18,11 +19,12 @@ enum PenaltyStatus: string
     public function label(): string
     {
         return match ($this) {
-            self::Unpaid        => 'Unpaid',
-            self::PartiallyPaid => 'Partially Paid',
-            self::Paid          => 'Paid',
-            self::Waived        => 'Waived',
-            self::Voided        => 'Voided',
+            self::PendingApproval => 'Pending Approval',
+            self::Unpaid          => 'Unpaid',
+            self::PartiallyPaid   => 'Partially Paid',
+            self::Paid            => 'Paid',
+            self::Waived          => 'Waived',
+            self::Voided          => 'Voided',
         };
     }
 
@@ -32,11 +34,12 @@ enum PenaltyStatus: string
     public function badgeClass(): string
     {
         return match ($this) {
-            self::Unpaid        => 'badge-error',
-            self::PartiallyPaid => 'badge-warning',
-            self::Paid          => 'badge-success',
-            self::Waived        => 'badge-info',
-            self::Voided        => 'badge-ghost',
+            self::PendingApproval => 'badge-warning',
+            self::Unpaid          => 'badge-error',
+            self::PartiallyPaid   => 'badge-warning',
+            self::Paid            => 'badge-success',
+            self::Waived          => 'badge-info',
+            self::Voided          => 'badge-ghost',
         };
     }
 }
