@@ -13,7 +13,7 @@
                         @endforeach
                     </select>
                 @else
-                    <span class="badge badge-neutral badge-sm font-semibold gap-1">
+                    <span class="inline-flex items-center gap-1 text-xs font-semibold text-base-content/80 bg-base-200 border border-base-300 px-2.5 py-1 rounded-md whitespace-nowrap">
                         <x-heroicon-o-academic-cap class="w-3.5 h-3.5" />
                         {{ auth()->user()?->organization?->code ?? 'Hub' }}
                     </span>
@@ -46,6 +46,11 @@
                         wire:click="$set('statusFilter', 'rejected')"
                         class="btn btn-xs {{ $statusFilter === 'rejected' ? 'btn-error text-error-content' : 'btn-ghost' }} font-semibold">
                         {{ __('Rejected') }}
+                    </button>
+                    <button type="button"
+                        wire:click="$set('statusFilter', 'cancelled')"
+                        class="btn btn-xs {{ $statusFilter === 'cancelled' ? 'btn-neutral' : 'btn-ghost' }} font-semibold">
+                        {{ __('Cancelled') }}
                     </button>
                 </div>
 
@@ -84,7 +89,7 @@
                                             <span>{{ $reservation->user->name }}</span>
                                         </div>
                                         <div class="text-base-content/60 text-[11px]">{{ $reservation->user->email }}</div>
-                                        <span class="badge badge-ghost badge-xs">{{ $reservation->organization->code }}</span>
+                                        <span class="text-[11px] font-mono font-semibold text-base-content/75 bg-base-200 px-1.5 py-0.5 rounded whitespace-nowrap">{{ $reservation->organization->code }}</span>
                                     </div>
                                 </td>
                                 <td>
@@ -123,9 +128,19 @@
                                     </div>
                                 </td>
                                 <td>
-                                    <span class="badge badge-xs {{ $reservation->status->badgeClass() }} font-semibold">
-                                        {{ $reservation->status->label() }}
-                                    </span>
+                                    <div class="flex flex-col items-start gap-1">
+                                        <span class="badge badge-xs {{ $reservation->status->badgeClass() }} font-semibold whitespace-nowrap">
+                                            {{ $reservation->status->label() }}
+                                        </span>
+                                        @if ($reservation->isMissedPickup())
+                                            <span class="badge badge-xs badge-warning font-semibold whitespace-nowrap" title="{{ __('Pickup date has passed. Cancel this booking to make the unit available again.') }}">
+                                                {{ __('Not Picked Up') }}
+                                            </span>
+                                            <span class="text-[11px] text-warning font-medium">
+                                                {{ __('Pickup missed — cancel to release unit') }}
+                                            </span>
+                                        @endif
+                                    </div>
                                 </td>
                                 <td class="text-right">
                                     @if ($reservation->isPending())
@@ -144,9 +159,17 @@
                                             </button>
                                         </div>
                                     @elseif ($reservation->isApproved())
-                                        <div class="text-[11px] text-base-content/60 text-right">
-                                            <span class="block text-success font-semibold">✓ {{ __('Approved') }}</span>
-                                            <span>{{ $reservation->approved_at?->diffForHumans() }}</span>
+                                        <div class="flex items-center justify-end gap-2">
+                                            <div class="text-[11px] text-base-content/60 text-right">
+                                                <span class="block text-success font-semibold">✓ {{ __('Approved') }}</span>
+                                                <span>{{ $reservation->approved_at?->diffForHumans() }}</span>
+                                            </div>
+                                            <button type="button"
+                                                wire:click="openCancelModal({{ $reservation->id }})"
+                                                class="btn btn-xs {{ $reservation->isMissedPickup() ? 'btn-warning' : 'btn-ghost text-error' }} font-semibold gap-1">
+                                                <x-heroicon-o-no-symbol class="w-3.5 h-3.5" />
+                                                <span>{{ __('Cancel Booking') }}</span>
+                                            </button>
                                         </div>
                                     @else
                                         <span class="text-base-content/40 text-[11px]">{{ __('Processed') }}</span>
@@ -202,17 +225,27 @@
                     </div>
 
                     <fieldset class="fieldset w-full">
-                        <legend class="fieldset-legend font-semibold">{{ __('Pre-allocate Physical Unit (Optional)') }}</legend>
-                        <select wire:model="assignedUnitId" class="select select-sm w-full text-xs">
-                            <option value="">{{ __('Auto-allocate upon Circulation Check-Out') }}</option>
+                        <legend class="fieldset-legend font-semibold">
+                            {{ __('Assign Physical Unit') }} <span class="text-error">*</span>
+                        </legend>
+                        <select wire:model="assignedUnitId" class="select select-sm w-full text-xs @error('assignedUnitId') select-error @enderror" required>
+                            <option value="">{{ __('Select a physical unit...') }}</option>
                             @foreach ($this->availableUnitsForApproving as $unit)
                                 <option value="{{ $unit->id }}">
                                     {{ $unit->asset_tag }} ({{ $unit->serial_number ?? 'No SN' }}) - {{ $unit->condition->label() }}
                                 </option>
                             @endforeach
                         </select>
+                        @error('assignedUnitId')
+                            <p class="label text-error text-xs">{{ $message }}</p>
+                        @enderror
+                        @if ($this->availableUnitsForApproving->isEmpty())
+                            <p class="label text-warning text-xs">
+                                {{ __('No available units found for this equipment.') }}
+                            </p>
+                        @endif
                         <span class="label text-[11px] text-base-content/60">
-                            {{ __('Allocating a unit locks it with status Reserved until checkout.') }}
+                            {{ __('Approving locks the selected unit as Reserved until checkout.') }}
                         </span>
                     </fieldset>
                 @endif
@@ -276,6 +309,59 @@
         </div>
         <form method="dialog" class="modal-backdrop">
             <button type="button" wire:click="$set('rejectModal', false)">close</button>
+        </form>
+    </dialog>
+
+    <!-- CANCEL APPROVED BOOKING MODAL -->
+    <dialog class="modal {{ $cancelModal ? 'modal-open' : '' }}">
+        <div class="modal-box max-w-md bg-base-100 p-5">
+            <h3 class="font-bold text-base flex items-center gap-2 text-warning">
+                <x-heroicon-o-exclamation-triangle class="w-5 h-5 text-warning" />
+                <span>{{ __('Cancel Approved Booking') }}</span>
+            </h3>
+
+            @if ($cancellingReservationId)
+                @php $cancelRes = \App\Models\Reservation::with(['user', 'item', 'itemUnit'])->find($cancellingReservationId); @endphp
+                @if ($cancelRes)
+                    <div class="bg-base-200/50 p-3 rounded-box text-xs space-y-1 my-3 border border-base-300">
+                        <div class="flex justify-between">
+                            <span class="text-base-content/60">{{ __('Student') }}:</span>
+                            <span class="font-bold text-base-content">{{ $cancelRes->user->name }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-base-content/60">{{ __('Equipment') }}:</span>
+                            <span class="font-semibold text-base-content">{{ $cancelRes->item->name }}</span>
+                        </div>
+                        @if ($cancelRes->itemUnit)
+                            <div class="flex justify-between">
+                                <span class="text-base-content/60">{{ __('Assigned Unit') }}:</span>
+                                <span class="font-mono font-semibold text-primary">{{ $cancelRes->itemUnit->asset_tag }}</span>
+                            </div>
+                        @endif
+                        <div class="flex justify-between">
+                            <span class="text-base-content/60">{{ __('Pickup Date') }}:</span>
+                            <span>{{ $cancelRes->start_time->format('M d, Y H:i') }}</span>
+                        </div>
+                    </div>
+
+                    <p class="text-xs text-base-content/80">
+                        {{ __('Cancelling this booking will release the reserved unit back to Available so other borrowers can use it.') }}
+                    </p>
+                @endif
+            @endif
+
+            <div class="modal-action mt-4">
+                <button type="button" wire:click="$set('cancelModal', false)" class="btn btn-ghost btn-sm">
+                    {{ __('Keep Booking') }}
+                </button>
+                <button type="button" wire:click="confirmCancellation" class="btn btn-warning btn-sm font-semibold gap-1">
+                    <x-heroicon-o-no-symbol class="w-4 h-4" />
+                    <span>{{ __('Cancel Booking & Release Unit') }}</span>
+                </button>
+            </div>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button type="button" wire:click="$set('cancelModal', false)">close</button>
         </form>
     </dialog>
 </div>

@@ -44,6 +44,11 @@ class BookingRequests extends Component
 
     public string $rejectionRemarks = '';
 
+    // Cancel Modal
+    public bool $cancelModal = false;
+
+    public ?int $cancellingReservationId = null;
+
     public function mount(): void
     {
         $user = Auth::user();
@@ -90,7 +95,8 @@ class BookingRequests extends Component
 
         $this->approvingReservationId = $reservation->id;
         $this->assignedUnitId         = $reservation->item_unit_id;
-        $this->approveModal           = true;
+        $this->resetValidation('assignedUnitId');
+        $this->approveModal = true;
     }
 
     public function confirmApproval(): void
@@ -99,25 +105,36 @@ class BookingRequests extends Component
             return;
         }
 
+        $this->validate([
+            'assignedUnitId' => ['required', 'integer', 'exists:item_units,id'],
+        ], [
+            'assignedUnitId.required' => 'Please select a physical equipment unit to approve this reservation.',
+            'assignedUnitId.exists'   => 'The selected physical equipment unit could not be found.',
+        ]);
+
         $reservation = $this->findAccessibleReservation($this->approvingReservationId);
 
-        $unit = null;
+        $unit = ItemUnit::query()
+            ->where('item_id', $reservation->item_id)
+            ->where('organization_id', $reservation->organization_id)
+            ->find($this->assignedUnitId);
 
-        if ($this->assignedUnitId) {
-            $unit = ItemUnit::find($this->assignedUnitId);
+        if (! $unit) {
+            $this->error('Selected unit does not belong to this equipment item or organization.');
 
-            if ($unit && $unit->status !== ItemUnitStatus::Available && $unit->status !== ItemUnitStatus::Reserved) {
-                $this->error("Selected unit {$unit->asset_tag} is currently {$unit->status->label()} and cannot be assigned.");
+            return;
+        }
 
-                return;
-            }
+        if ($unit->status !== ItemUnitStatus::Available && $unit->status !== ItemUnitStatus::Reserved) {
+            $this->error("Selected unit {$unit->asset_tag} is currently {$unit->status->label()} and cannot be assigned.");
+
+            return;
         }
 
         $reservation->approve(Auth::user(), $unit);
         $reservation->user?->notify(new ReservationStatusNotification($reservation));
 
-        $unitMsg = $unit ? " (Unit {$unit->asset_tag} allocated)" : '';
-        $this->success("Reservation #{$reservation->id} for {$reservation->user->name} has been approved{$unitMsg}.");
+        $this->success("Reservation #{$reservation->id} for {$reservation->user->name} has been approved (Unit {$unit->asset_tag} allocated).");
 
         $this->approveModal           = false;
         $this->approvingReservationId = null;
@@ -165,6 +182,46 @@ class BookingRequests extends Component
         } catch (InvalidArgumentException $e) {
             $this->error($e->getMessage());
         }
+    }
+
+    public function openCancelModal(int $id): void
+    {
+        $reservation = $this->findAccessibleReservation($id);
+
+        if (! $reservation->isApproved()) {
+            $this->error('Only approved reservations can be cancelled.');
+
+            return;
+        }
+
+        $this->cancellingReservationId = $reservation->id;
+        $this->cancelModal             = true;
+    }
+
+    public function confirmCancellation(): void
+    {
+        if (! $this->cancellingReservationId) {
+            return;
+        }
+
+        $reservation = $this->findAccessibleReservation($this->cancellingReservationId);
+
+        if (! $reservation->isApproved()) {
+            $this->error('Only approved reservations can be cancelled.');
+            $this->cancelModal             = false;
+            $this->cancellingReservationId = null;
+
+            return;
+        }
+
+        $unitTag = $reservation->itemUnit?->asset_tag;
+        $reservation->cancel();
+
+        $unitMsg = $unitTag ? " Unit {$unitTag} is now available again." : '';
+        $this->success("Reservation #{$reservation->id} for {$reservation->user->name} has been cancelled.{$unitMsg}");
+
+        $this->cancelModal             = false;
+        $this->cancellingReservationId = null;
     }
 
     #[Computed]
