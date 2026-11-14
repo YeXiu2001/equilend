@@ -13,16 +13,11 @@
                         @endforeach
                     </select>
                 @else
-                    <span class="badge badge-neutral badge-sm font-semibold gap-1">
+                    <span class="inline-flex items-center gap-1 text-xs font-semibold text-base-content/80 bg-base-200 border border-base-300 px-2.5 py-1 rounded-md whitespace-nowrap">
                         <x-heroicon-o-academic-cap class="w-3.5 h-3.5" />
                         {{ auth()->user()?->organization?->code ?? 'Hub' }}
                     </span>
                 @endif
-
-                <button type="button" wire:click="openAssessModal" class="btn btn-primary btn-sm font-semibold gap-1">
-                    <x-heroicon-o-plus class="w-4 h-4" />
-                    <span>{{ __('Assess Penalty') }}</span>
-                </button>
             </div>
         </x-slot:actions>
     </x-breadcrumbs>
@@ -76,8 +71,8 @@
 
                 <select wire:model.live="statusFilter" class="select select-sm w-full sm:w-40 text-xs">
                     <option value="all">{{ __('All Statuses') }}</option>
+                    <option value="pending_approval">{{ __('Pending Approval') }}</option>
                     <option value="unpaid">{{ __('Unpaid') }}</option>
-                    <option value="partially_paid">{{ __('Partially Paid') }}</option>
                     <option value="paid">{{ __('Paid') }}</option>
                     <option value="waived">{{ __('Waived') }}</option>
                     <option value="voided">{{ __('Voided') }}</option>
@@ -108,10 +103,10 @@
                                     <div class="text-[11px] text-base-content/60">{{ $penalty->user->email }}</div>
                                 </td>
                                 <td>
-                                    <span class="badge badge-ghost badge-xs font-semibold">{{ $penalty->organization->code }}</span>
+                                    <span class="text-[11px] font-mono font-semibold text-base-content/75 bg-base-200 px-1.5 py-0.5 rounded whitespace-nowrap">{{ $penalty->organization->code }}</span>
                                 </td>
                                 <td>
-                                    <span class="badge badge-xs {{ $penalty->type->badgeClass() }}">{{ $penalty->type->label() }}</span>
+                                    <span class="text-xs font-semibold whitespace-nowrap {{ $penalty->type->textClass() }}">{{ $penalty->type->label() }}</span>
                                 </td>
                                 <td class="max-w-xs">
                                     <div class="line-clamp-2 text-base-content/80">{{ $penalty->assessment_notes ?: '—' }}</div>
@@ -127,11 +122,36 @@
                                     ₱{{ number_format((float) $penalty->balance_remaining, 2) }}
                                 </td>
                                 <td>
-                                    <span class="badge badge-xs {{ $penalty->status->badgeClass() }}">{{ $penalty->status->label() }}</span>
+                                    @php
+                                        $hasPendingProof = $penalty->payments->contains('status', \App\Enums\PaymentStatus::PendingVerification);
+                                    @endphp
+                                    <div class="flex flex-col items-start gap-1">
+                                        <span class="badge badge-xs whitespace-nowrap {{ $penalty->status->badgeClass() }}">{{ $penalty->status->label() }}</span>
+                                        @if ($hasPendingProof)
+                                            <span class="badge badge-xs badge-warning font-semibold whitespace-nowrap">{{ __('Proof Pending') }}</span>
+                                        @endif
+                                    </div>
                                 </td>
                                 <td class="text-right">
-                                    @if (in_array($penalty->status, [\App\Enums\PenaltyStatus::Unpaid, \App\Enums\PenaltyStatus::PartiallyPaid], true))
+                                    @if ($penalty->status === \App\Enums\PenaltyStatus::PendingApproval)
                                         <div class="flex justify-end gap-1">
+                                            <button type="button" wire:click="openApproveModal({{ $penalty->id }})"
+                                                class="btn btn-xs btn-primary font-semibold">
+                                                {{ __('Approve') }}
+                                            </button>
+                                            <button type="button" wire:click="openWaiveModal({{ $penalty->id }}, 'void')"
+                                                class="btn btn-xs btn-ghost text-error font-semibold">
+                                                {{ __('Void') }}
+                                            </button>
+                                        </div>
+                                    @elseif (in_array($penalty->status, [\App\Enums\PenaltyStatus::Unpaid, \App\Enums\PenaltyStatus::PartiallyPaid], true))
+                                        <div class="flex justify-end gap-1">
+                                            @if ($hasPendingProof)
+                                                <button type="button" wire:click="openVerifyModal({{ $penalty->id }})"
+                                                    class="btn btn-xs btn-warning font-semibold">
+                                                    {{ __('Verify Receipt') }}
+                                                </button>
+                                            @endif
                                             <button type="button" wire:click="openPaymentModal({{ $penalty->id }})"
                                                 class="btn btn-xs btn-success font-semibold">
                                                 {{ __('Collect') }}
@@ -167,53 +187,6 @@
         </div>
     </div>
 
-    <!-- Assess Manual Penalty Modal -->
-    <dialog class="modal" @if ($assessModal) open @endif>
-        <div class="modal-box max-w-md">
-            <h3 class="font-bold text-base">{{ __('Assess New Penalty') }}</h3>
-            <div class="space-y-3 mt-3 text-xs">
-                <fieldset class="fieldset w-full">
-                    <legend class="fieldset-legend font-semibold">{{ __('Borrower') }} *</legend>
-                    <select wire:model="assessUserId" class="select select-sm w-full">
-                        <option value="">{{ __('Select student or faculty...') }}</option>
-                        @foreach ($this->borrowers as $borrower)
-                            <option value="{{ $borrower->id }}">{{ $borrower->name }} ({{ $borrower->email }})</option>
-                        @endforeach
-                    </select>
-                    @error('assessUserId') <p class="label text-error text-xs">{{ $message }}</p> @enderror
-                </fieldset>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <fieldset class="fieldset w-full">
-                        <legend class="fieldset-legend font-semibold">{{ __('Type') }} *</legend>
-                        <select wire:model="assessType" class="select select-sm w-full">
-                            <option value="damage">{{ __('Damage') }}</option>
-                            <option value="overdue">{{ __('Overdue') }}</option>
-                            <option value="loss">{{ __('Loss') }}</option>
-                            <option value="other">{{ __('Other') }}</option>
-                        </select>
-                    </fieldset>
-                    <fieldset class="fieldset w-full">
-                        <legend class="fieldset-legend font-semibold">{{ __('Amount (₱)') }} *</legend>
-                        <input type="number" step="0.01" min="1" wire:model="assessAmount" class="input input-sm w-full" placeholder="500.00" />
-                        @error('assessAmount') <p class="label text-error text-xs">{{ $message }}</p> @enderror
-                    </fieldset>
-                </div>
-
-                <fieldset class="fieldset w-full">
-                    <legend class="fieldset-legend font-semibold">{{ __('Assessment Remarks') }} *</legend>
-                    <textarea wire:model="assessNotes" rows="3" class="textarea textarea-sm w-full" placeholder="{{ __('Detail the reason for this penalty...') }}"></textarea>
-                    @error('assessNotes') <p class="label text-error text-xs">{{ $message }}</p> @enderror
-                </fieldset>
-            </div>
-            <div class="modal-action">
-                <button type="button" wire:click="$set('assessModal', false)" class="btn btn-sm btn-ghost">{{ __('Cancel') }}</button>
-                <button type="button" wire:click="submitAssessPenalty" class="btn btn-sm btn-primary">{{ __('Save Penalty') }}</button>
-            </div>
-        </div>
-        <div class="modal-backdrop" wire:click="$set('assessModal', false)"></div>
-    </dialog>
-
     <!-- Record Payment Modal -->
     <dialog class="modal" @if ($paymentModal) open @endif>
         <div class="modal-box max-w-md">
@@ -231,7 +204,7 @@
 
                 <fieldset class="fieldset w-full">
                     <legend class="fieldset-legend font-semibold">{{ __('Amount Paid (₱)') }} *</legend>
-                    <input type="number" step="0.01" min="0.01" wire:model="paymentAmount" class="input input-sm w-full" />
+                    <input type="number" step="0.01" min="0.01" wire:model="paymentAmount" class="input input-sm w-full bg-base-200 font-mono font-bold" readonly />
                     @error('paymentAmount') <p class="label text-error text-xs">{{ $message }}</p> @enderror
                 </fieldset>
 
@@ -280,5 +253,133 @@
             </div>
         </div>
         <div class="modal-backdrop" wire:click="$set('waiveModal', false)"></div>
+    </dialog>
+
+    <!-- Verify Online Payment Receipt Modal -->
+    <dialog class="modal" @if ($verifyModal && $this->verifyingPayment) open @endif>
+        <div class="modal-box max-w-lg">
+            @if ($this->verifyingPayment)
+                @php
+                    $vp = $this->verifyingPayment;
+                    $siblings = $this->verifyingSiblings;
+                    $totalSubmitted = (float) $siblings->sum('amount_paid');
+                    $otherUnsettled = $this->borrowerOtherUnsettledCount;
+                @endphp
+                <h3 class="font-bold text-base flex items-center gap-2">
+                    <span>{{ __('Verify Online Payment Receipt') }}</span>
+                    <span class="badge badge-warning badge-xs font-semibold whitespace-nowrap">{{ __('Pending Verification') }}</span>
+                </h3>
+
+                <div class="space-y-3 mt-3 text-xs">
+                    <div class="bg-base-200/60 p-3 rounded-box border border-base-300 space-y-1.5">
+                        <div class="flex justify-between">
+                            <span class="text-base-content/60">{{ __('Borrower') }}</span>
+                            <span class="font-bold">{{ $vp->user->name }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-base-content/60">{{ __('Channel') }}</span>
+                            <span class="font-semibold">{{ $vp->paymentMethod?->name ?? __('Online') }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-base-content/60">{{ __('Reference #') }}</span>
+                            <span class="font-mono">{{ $vp->reference_number ?: '—' }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-base-content/60">{{ __('Penalties Covered') }}</span>
+                            <span class="font-semibold">{{ $siblings->count() }} {{ $siblings->count() === 1 ? __('penalty') : __('penalties') }}</span>
+                        </div>
+                        <div class="flex justify-between border-t border-base-300 pt-1.5 font-bold text-sm">
+                            <span>{{ __('Amount Submitted') }}</span>
+                            <span class="font-mono text-success">₱{{ number_format($totalSubmitted, 2) }}</span>
+                        </div>
+                        @if ($vp->notes)
+                            <div class="text-[11px] text-base-content/70 pt-1">
+                                <span class="font-semibold">{{ __('Borrower Note:') }}</span> {{ $vp->notes }}
+                            </div>
+                        @endif
+                    </div>
+
+                    @if ($vp->proof_url)
+                        <div class="bg-base-200/40 rounded-box p-2 border border-base-300 text-center">
+                            <img src="{{ $vp->proof_url }}" alt="{{ __('Payment Receipt') }}" class="max-h-72 mx-auto rounded object-contain" />
+                            <a href="{{ $vp->proof_url }}" target="_blank" rel="noopener noreferrer" class="link link-primary text-[11px] mt-1.5 inline-block">
+                                {{ __('Open full size image') }}
+                            </a>
+                        </div>
+                    @endif
+
+                    <fieldset class="fieldset w-full">
+                        <legend class="fieldset-legend font-semibold">{{ __('Rejection Reason (only if Not Paid)') }}</legend>
+                        <input type="text" wire:model="rejectReason" class="input input-sm w-full" placeholder="{{ __('e.g. Receipt unreadable or funds not received...') }}" />
+                    </fieldset>
+                </div>
+
+                <div class="modal-action flex-wrap gap-2">
+                    <button type="button" wire:click="$set('verifyModal', false)" class="btn btn-sm btn-ghost">{{ __('Cancel') }}</button>
+                    <button type="button" wire:click="rejectPendingPayment" class="btn btn-sm btn-error btn-outline">{{ __('Not Paid (Reject)') }}</button>
+                    <button type="button" wire:click="confirmPendingPayment(false)" class="btn btn-sm btn-success">
+                        {{ $siblings->count() > 1 ? __('Confirm Paid (All :count)', ['count' => $siblings->count()]) : __('Confirm Paid') }}
+                    </button>
+                    @if ($otherUnsettled > 0)
+                        <button type="button" wire:click="confirmPendingPayment(true)" class="btn btn-sm btn-primary">
+                            {{ __('Confirm & Clear All Penalties') }}
+                        </button>
+                    @endif
+                </div>
+            @endif
+        </div>
+        <div class="modal-backdrop" wire:click="$set('verifyModal', false)"></div>
+    </dialog>
+
+    <!-- Approve Automated Penalty Modal -->
+    <dialog class="modal" @if ($approveModal && $this->approvingPenalty) open @endif>
+        <div class="modal-box max-w-md">
+            @if ($this->approvingPenalty)
+                @php $ap = $this->approvingPenalty; @endphp
+                <h3 class="font-bold text-base">{{ __('Approve Automated Penalty #:id', ['id' => $ap->id]) }}</h3>
+                <p class="text-xs text-base-content/60 mt-1">
+                    {{ __('Review and finalize the automated overdue fee before it becomes payable by the borrower.') }}
+                </p>
+
+                <div class="space-y-3 mt-3 text-xs">
+                    <div class="bg-base-200/60 p-3 rounded-box border border-base-300 space-y-1">
+                        <div class="flex justify-between">
+                            <span class="text-base-content/60">{{ __('Borrower') }}</span>
+                            <span class="font-bold">{{ $ap->user->name }}</span>
+                        </div>
+                        @if ($ap->loan)
+                            <div class="flex justify-between">
+                                <span class="text-base-content/60">{{ __('Linked Loan') }}</span>
+                                <span class="font-mono font-semibold">#{{ $ap->loan_id }} ({{ $ap->loan->item?->name }})</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-base-content/60">{{ __('Item Return Status') }}</span>
+                                <span class="font-semibold {{ $ap->loan->returned_at ? 'text-success' : 'text-warning' }}">
+                                    {{ $ap->loan->returned_at ? __('Returned (:date)', ['date' => $ap->loan->returned_at->format('M d, Y')]) : __('Not yet returned') }}
+                                </span>
+                            </div>
+                        @endif
+                    </div>
+
+                    <fieldset class="fieldset w-full">
+                        <legend class="fieldset-legend font-semibold">{{ __('Finalized Amount (₱)') }} *</legend>
+                        <input type="number" step="0.01" min="0.01" wire:model="approveAmount" class="input input-sm w-full font-mono" />
+                        @error('approveAmount') <p class="label text-error text-xs">{{ $message }}</p> @enderror
+                    </fieldset>
+
+                    <fieldset class="fieldset w-full">
+                        <legend class="fieldset-legend font-semibold">{{ __('Assessment Remarks') }}</legend>
+                        <textarea wire:model="approveNotes" rows="3" class="textarea textarea-sm w-full"></textarea>
+                        @error('approveNotes') <p class="label text-error text-xs">{{ $message }}</p> @enderror
+                    </fieldset>
+                </div>
+
+                <div class="modal-action">
+                    <button type="button" wire:click="$set('approveModal', false)" class="btn btn-sm btn-ghost">{{ __('Cancel') }}</button>
+                    <button type="button" wire:click="submitApprovePenalty" class="btn btn-sm btn-primary">{{ __('Approve & Finalize') }}</button>
+                </div>
+            @endif
+        </div>
+        <div class="modal-backdrop" wire:click="$set('approveModal', false)"></div>
     </dialog>
 </div>

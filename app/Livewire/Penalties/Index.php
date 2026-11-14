@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace App\Livewire\Penalties;
 
-use App\Models\User;
 use DomainException;
+use App\Models\Payment;
 use App\Models\Penalty;
 use Livewire\Component;
-use App\Enums\PenaltyType;
 use App\Enums\PaymentStatus;
 use App\Enums\PenaltyStatus;
 use App\Models\Organization;
@@ -17,13 +16,13 @@ use App\Models\PaymentMethod;
 use InvalidArgumentException;
 use App\Livewire\Traits\Alert;
 use Livewire\Attributes\Computed;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use App\Models\OrganizationPaymentMethod;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
-use App\Notifications\PenaltyImposedNotification;
 
 class Index extends Component
 {
@@ -37,17 +36,6 @@ class Index extends Component
     public string $statusFilter = 'all';
 
     public string $selectedOrganizationId = 'all';
-
-    // Assess Penalty Modal
-    public bool $assessModal = false;
-
-    public ?int $assessUserId = null;
-
-    public string $assessType = 'damage';
-
-    public string $assessAmount = '';
-
-    public string $assessNotes = '';
 
     // Record Payment Modal
     public bool $paymentModal = false;
@@ -70,6 +58,22 @@ class Index extends Component
     public string $waiveAction = 'waive';
 
     public string $waiveReason = '';
+
+    // Verify Online Payment Modal
+    public bool $verifyModal = false;
+
+    public ?int $verifyingPaymentId = null;
+
+    public string $rejectReason = '';
+
+    // Approve Automated Penalty Modal
+    public bool $approveModal = false;
+
+    public ?int $approvingPenaltyId = null;
+
+    public string $approveAmount = '';
+
+    public string $approveNotes = '';
 
     public function mount(): void
     {
@@ -104,67 +108,14 @@ class Index extends Component
         $this->resetPage();
     }
 
-    public function openAssessModal(): void
-    {
-        $this->reset(['assessUserId', 'assessAmount', 'assessNotes']);
-        $this->assessType  = 'damage';
-        $this->assessModal = true;
-    }
-
-    public function submitAssessPenalty(): void
-    {
-        $this->validate([
-            'assessUserId' => ['required', 'exists:users,id'],
-            'assessType'   => ['required', 'in:overdue,damage,loss,other'],
-            'assessAmount' => ['required', 'numeric', 'min:1'],
-            'assessNotes'  => ['required', 'string', 'min:3'],
-        ], [
-            'assessUserId.required' => 'Please select a borrower.',
-            'assessAmount.required' => 'Please enter a penalty amount.',
-            'assessNotes.required'  => 'Please provide assessment remarks.',
-        ]);
-
-        $staff    = Auth::user();
-        $borrower = User::findOrFail($this->assessUserId);
-        $orgId    = $this->getEffectiveOrganizationId()
-            ?? $borrower->organization?->id
-            ?? $staff->organization?->id;
-
-        if (! $orgId) {
-            $this->error('Unable to determine the college organization for this penalty.');
-
-            return;
-        }
-
-        if (! $staff->hasRole('superadmin') && $staff->organization && $orgId !== $staff->organization->id) {
-            abort(403, 'You cannot assess penalties for another college.');
-        }
-
-        $amount  = round((float) $this->assessAmount, 2);
-        $penalty = Penalty::create([
-            'organization_id'   => $orgId,
-            'user_id'           => $borrower->id,
-            'type'              => PenaltyType::from($this->assessType),
-            'amount'            => $amount,
-            'paid_amount'       => 0.00,
-            'balance_remaining' => $amount,
-            'status'            => PenaltyStatus::Unpaid,
-            'assessment_notes'  => mb_trim($this->assessNotes),
-            'assessed_by'       => $staff->id,
-        ]);
-
-        $borrower->notify(new PenaltyImposedNotification($penalty));
-
-        $this->assessModal = false;
-        $this->success("Penalty #{$penalty->id} (₱".number_format($amount, 2).") assessed against {$borrower->name}.");
-    }
-
     public function openPaymentModal(int $penaltyId): void
     {
         $penalty = $this->findAccessiblePenalty($penaltyId);
 
-        if (in_array($penalty->status, [PenaltyStatus::Paid, PenaltyStatus::Waived, PenaltyStatus::Voided], true)) {
-            $this->error('This penalty has already been settled or closed.');
+        if (in_array($penalty->status, [PenaltyStatus::PendingApproval, PenaltyStatus::Paid, PenaltyStatus::Waived, PenaltyStatus::Voided], true)) {
+            $this->error($penalty->status === PenaltyStatus::PendingApproval
+                ? 'Please approve this automated penalty before recording a payment.'
+                : 'This penalty has already been settled or closed.');
 
             return;
         }
@@ -172,6 +123,8 @@ class Index extends Component
         $cash = PaymentMethod::where('payment_code', 'cash')->first() ?? PaymentMethod::active()->first();
 
         $this->payingPenaltyId = $penalty->id;
+        unset($this->paymentMethods);
+        $this->resetValidation();
         $this->paymentMethodId = $cash?->id;
         $this->paymentAmount   = number_format((float) $penalty->balance_remaining, 2, '.', '');
         $this->referenceNumber = '';
@@ -187,27 +140,41 @@ class Index extends Component
 
         $penalty = $this->findAccessiblePenalty($this->payingPenaltyId);
         $method  = $this->paymentMethodId ? PaymentMethod::find($this->paymentMethodId) : null;
-        $isCash  = $method?->payment_code === 'cash';
+        $isCash  = $method?->isCash() ?? false;
 
         $this->validate([
             'paymentMethodId' => ['required', 'exists:payment_methods,id'],
-            'paymentAmount'   => ['required', 'numeric', 'min:0.01', 'max:'.$penalty->balance_remaining],
             'referenceNumber' => $isCash ? ['nullable', 'string', 'max:100'] : ['required', 'string', 'min:4', 'max:100'],
         ], [
             'paymentMethodId.required' => 'Please select a payment method.',
             'referenceNumber.required' => 'A reference number is required for digital wallet payments.',
         ]);
 
+        $fullAmount = round((float) $penalty->balance_remaining, 2);
+
+        if (abs((float) $this->paymentAmount - $fullAmount) >= 0.01) {
+            $this->addError('paymentAmount', 'Partial payments are not allowed. Full penalty balance (₱'.number_format($fullAmount, 2).') is required.');
+
+            return;
+        }
+
         $orgPaymentMethod = null;
 
         if ($method && ! $isCash) {
             $orgPaymentMethod = OrganizationPaymentMethod::where('organization_id', $penalty->organization_id)
                 ->where('payment_method_id', $method->id)
+                ->where('is_enabled', true)
                 ->first();
+
+            if (! $orgPaymentMethod) {
+                $this->addError('paymentMethodId', 'The selected payment channel is not enabled for this organization.');
+
+                return;
+            }
         }
 
         try {
-            $payment = $penalty->recordPayment((float) $this->paymentAmount, [
+            $payment = $penalty->recordPayment($fullAmount, [
                 'payment_method_id'              => $method?->id,
                 'organization_payment_method_id' => $orgPaymentMethod?->id,
                 'reference_number'               => ! empty($this->referenceNumber) ? mb_trim($this->referenceNumber) : null,
@@ -273,6 +240,212 @@ class Index extends Component
         }
     }
 
+    public function openApproveModal(int $penaltyId): void
+    {
+        $penalty = $this->findAccessiblePenalty($penaltyId);
+
+        if ($penalty->status !== PenaltyStatus::PendingApproval) {
+            $this->error('Only pending approval penalties can be approved.');
+
+            return;
+        }
+
+        $this->approvingPenaltyId = $penalty->id;
+        $this->approveAmount      = number_format((float) $penalty->amount, 2, '.', '');
+        $this->approveNotes       = (string) ($penalty->assessment_notes ?? '');
+        $this->approveModal       = true;
+    }
+
+    public function submitApprovePenalty(): void
+    {
+        if (! $this->approvingPenaltyId) {
+            return;
+        }
+
+        $this->validate([
+            'approveAmount' => ['required', 'numeric', 'min:0.01'],
+            'approveNotes'  => ['nullable', 'string', 'max:500'],
+        ], [
+            'approveAmount.required' => 'Please enter the finalized penalty amount.',
+        ]);
+
+        $penalty = $this->findAccessiblePenalty($this->approvingPenaltyId);
+
+        try {
+            $penalty->approve(
+                (int) Auth::id(),
+                (float) $this->approveAmount,
+                $this->approveNotes
+            );
+
+            $this->approveModal       = false;
+            $this->approvingPenaltyId = null;
+
+            $this->success("Penalty #{$penalty->id} approved and finalized at ₱".number_format((float) $penalty->amount, 2).'.');
+        } catch (InvalidArgumentException|DomainException $e) {
+            $this->error($e->getMessage());
+        }
+    }
+
+    #[Computed]
+    public function approvingPenalty(): ?Penalty
+    {
+        if (! $this->approvingPenaltyId) {
+            return null;
+        }
+
+        return Penalty::with(['user', 'loan.item', 'organization'])
+            ->find($this->approvingPenaltyId);
+    }
+
+    public function openVerifyModal(int $penaltyId): void
+    {
+        $penalty = $this->findAccessiblePenalty($penaltyId);
+
+        $pendingPayment = $penalty->payments()
+            ->where('status', PaymentStatus::PendingVerification)
+            ->latest('id')
+            ->first();
+
+        if (! $pendingPayment) {
+            $this->error('No pending payment receipt found for this penalty.');
+
+            return;
+        }
+
+        $this->verifyingPaymentId = $pendingPayment->id;
+        $this->rejectReason       = '';
+        $this->verifyModal        = true;
+    }
+
+    public function confirmPendingPayment(bool $clearAllBorrowerPenalties = false): void
+    {
+        if (! $this->verifyingPaymentId) {
+            return;
+        }
+
+        $payment = Payment::with(['penalty', 'user'])->findOrFail($this->verifyingPaymentId);
+        $this->findAccessiblePenalty($payment->penalty_id);
+
+        try {
+            $verifiedCount = 0;
+
+            DB::transaction(function () use ($payment, $clearAllBorrowerPenalties, &$verifiedCount): void {
+                $siblings   = $payment->siblingPendingPayments();
+                $coveredIds = [];
+                $staffId    = (int) Auth::id();
+
+                foreach ($siblings as $pending) {
+                    $pending->verify($staffId);
+                    $coveredIds[] = $pending->penalty_id;
+                    $verifiedCount++;
+                }
+
+                if ($clearAllBorrowerPenalties) {
+                    $remaining = Penalty::query()
+                        ->where('user_id', $payment->user_id)
+                        ->where('organization_id', $payment->organization_id)
+                        ->whereNotIn('id', $coveredIds)
+                        ->unsettled()
+                        ->get();
+
+                    foreach ($remaining as $extraPenalty) {
+                        $extraPenalty->recordPayment((float) $extraPenalty->balance_remaining, [
+                            'payment_method_id'              => $payment->payment_method_id,
+                            'organization_payment_method_id' => $payment->organization_payment_method_id,
+                            'reference_number'               => $payment->reference_number,
+                            'payment_proof_url'              => $payment->payment_proof_url,
+                            'received_by'                    => $staffId,
+                            'status'                         => PaymentStatus::Verified,
+                            'notes'                          => "Settled with verified receipt {$payment->receipt_number}",
+                        ]);
+                        $verifiedCount++;
+                    }
+                }
+            });
+
+            $this->verifyModal        = false;
+            $this->verifyingPaymentId = null;
+
+            $this->success("Payment confirmed! {$verifiedCount} ".($verifiedCount === 1 ? 'penalty has' : 'penalties have').' been marked as paid.');
+        } catch (InvalidArgumentException|DomainException $e) {
+            $this->error($e->getMessage());
+        }
+    }
+
+    public function rejectPendingPayment(): void
+    {
+        if (! $this->verifyingPaymentId) {
+            return;
+        }
+
+        $payment = Payment::findOrFail($this->verifyingPaymentId);
+        $this->findAccessiblePenalty($payment->penalty_id);
+
+        try {
+            DB::transaction(function () use ($payment): void {
+                $staffId = (int) Auth::id();
+
+                foreach ($payment->siblingPendingPayments() as $pending) {
+                    $pending->reject($staffId, $this->rejectReason);
+                }
+            });
+
+            $this->verifyModal        = false;
+            $this->verifyingPaymentId = null;
+            $this->rejectReason       = '';
+
+            $this->warning('Payment receipt rejected. The penalty remains unpaid.');
+        } catch (DomainException $e) {
+            $this->error($e->getMessage());
+        }
+    }
+
+    #[Computed]
+    public function verifyingPayment(): ?Payment
+    {
+        if (! $this->verifyingPaymentId) {
+            return null;
+        }
+
+        return Payment::with(['penalty', 'user', 'paymentMethod', 'organization'])
+            ->find($this->verifyingPaymentId);
+    }
+
+    /**
+     * @return Collection<int, Payment>
+     */
+    #[Computed]
+    public function verifyingSiblings(): Collection
+    {
+        $payment = $this->verifyingPayment;
+
+        if (! $payment) {
+            return new Collection();
+        }
+
+        return $payment->siblingPendingPayments();
+    }
+
+    #[Computed]
+    public function borrowerOtherUnsettledCount(): int
+    {
+        $payment = $this->verifyingPayment;
+
+        if (! $payment) {
+            return 0;
+        }
+
+        $coveredIds = $this->verifyingSiblings->pluck('penalty_id')->all();
+
+        return Penalty::query()
+            ->where('user_id', $payment->user_id)
+            ->where('organization_id', $payment->organization_id)
+            ->whereNotIn('id', $coveredIds)
+            ->unsettled()
+            ->count();
+    }
+
     #[Computed]
     public function organizations(): Collection
     {
@@ -282,18 +455,22 @@ class Index extends Component
     #[Computed]
     public function paymentMethods(): Collection
     {
-        return PaymentMethod::active()->orderBy('name')->get();
-    }
+        $orgId = $this->payingPenaltyId
+            ? Penalty::whereKey($this->payingPenaltyId)->value('organization_id')
+            : $this->getEffectiveOrganizationId();
 
-    #[Computed]
-    public function borrowers(): Collection
-    {
-        $orgId = $this->getEffectiveOrganizationId();
+        return PaymentMethod::active()
+            ->where(function (Builder $query) use ($orgId): void {
+                $query->where('payment_code', 'cash');
 
-        return User::query()
-            ->when($orgId !== null, fn (Builder $q) => $q->whereHas('organizations', fn (Builder $oq) => $oq->where('organizations.id', $orgId)))
+                if ($orgId !== null) {
+                    $query->orWhereHas('organizationPaymentMethods', function (Builder $opm) use ($orgId): void {
+                        $opm->where('organization_id', $orgId)
+                            ->where('is_enabled', true);
+                    });
+                }
+            })
             ->orderBy('name')
-            ->limit(100)
             ->get();
     }
 
@@ -303,7 +480,7 @@ class Index extends Component
         $orgId = $this->getEffectiveOrganizationId();
 
         return Penalty::query()
-            ->with(['organization', 'user', 'itemUnit.item', 'assessedBy'])
+            ->with(['organization', 'user', 'itemUnit.item', 'assessedBy', 'payments.paymentMethod', 'loan'])
             ->when($orgId !== null, fn (Builder $q) => $q->where('organization_id', $orgId))
             ->when($this->typeFilter !== 'all', fn (Builder $q) => $q->where('type', $this->typeFilter))
             ->when($this->statusFilter !== 'all', fn (Builder $q) => $q->where('status', $this->statusFilter))
