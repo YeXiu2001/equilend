@@ -14,12 +14,12 @@ use App\Models\Reservation;
 use App\Enums\PenaltyStatus;
 use App\Models\Organization;
 use App\Enums\ReservationStatus;
+use App\Livewire\Circulation\Desk;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Notification;
 use App\Livewire\Circulation\BookingRequests;
 use App\Notifications\LoanOverdueNotification;
 use App\Notifications\PenaltyImposedNotification;
-use App\Livewire\Penalties\Index as PenaltiesIndex;
 use App\Notifications\ReservationStatusNotification;
 use App\Notifications\AdvanceReturnReminderNotification;
 
@@ -130,12 +130,12 @@ it('marks past-due loans as overdue, creates penalty, locks borrowing, and write
 
     expect($overdueLoan->status)->toBe(LoanStatus::Overdue);
     expect($student->canBorrow())->toBeFalse();
-    expect($student->getOutstandingFinesTotal())->toBe(50.00);
+    expect($student->getOutstandingFinesTotal())->toBe(0.00);
 
     $penalty = Penalty::where('loan_id', $overdueLoan->id)->first();
     expect($penalty)->not->toBeNull()
         ->and($penalty->type)->toBe(PenaltyType::Overdue)
-        ->and($penalty->status)->toBe(PenaltyStatus::Unpaid)
+        ->and($penalty->status)->toBe(PenaltyStatus::PendingApproval)
         ->and((float) $penalty->amount)->toBe(50.00);
 
     expect($student->unreadNotifications()->count())->toBe(1);
@@ -147,7 +147,7 @@ it('marks past-due loans as overdue, creates penalty, locks borrowing, and write
         ->and($dbNotification->data['asset_tag'])->toBe('COET-MM-009');
 });
 
-it('creates unread database notification when a penalty is imposed via Penalties Index', function (): void {
+it('creates unread database notification when a penalty is imposed via Circulation Desk check-in', function (): void {
     $org   = Organization::factory()->create(['code' => 'CCS']);
     $admin = User::factory()->create();
     $admin->assignRole('organization_admin');
@@ -157,14 +157,28 @@ it('creates unread database notification when a penalty is imposed via Penalties
     $student->assignRole('member');
     $student->organizations()->attach($org->id, ['role' => 'member']);
 
+    $item = Item::factory()->create(['organization_id' => $org->id]);
+    $unit = ItemUnit::factory()->forItem($item)->available()->create(['organization_id' => $org->id]);
+
+    $loan = Loan::factory()->create([
+        'organization_id' => $org->id,
+        'user_id'         => $student->id,
+        'item_id'         => $item->id,
+        'item_unit_id'    => $unit->id,
+        'issued_by'       => $admin->id,
+        'status'          => LoanStatus::Active,
+        'returned_at'     => null,
+    ]);
+
     $this->actingAs($admin);
 
-    Livewire::test(PenaltiesIndex::class)
-        ->set('assessUserId', (string) $student->id)
-        ->set('assessType', PenaltyType::Damage->value)
-        ->set('assessAmount', '250.00')
-        ->set('assessNotes', 'Cracked lens filter ring upon inspection.')
-        ->call('submitAssessPenalty')
+    Livewire::test(Desk::class)
+        ->set('inspectingLoanId', $loan->id)
+        ->set('assessPenalty', true)
+        ->set('penaltyType', PenaltyType::Damage->value)
+        ->set('penaltyAmount', '250.00')
+        ->set('penaltyNotes', 'Cracked lens filter ring upon inspection.')
+        ->call('processCheckin')
         ->assertHasNoErrors();
 
     expect($student->unreadNotifications()->count())->toBe(1);
