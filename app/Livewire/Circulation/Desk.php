@@ -37,6 +37,12 @@ class Desk extends Component
     public string $selectedOrganizationId = 'all';
 
     // CHECK-OUT FORM STATE
+    public string $checkoutSource = 'walkin'; // 'walkin' or 'reservation'
+
+    public bool $reservationModal = false;
+
+    public string $reservationSearch = '';
+
     public ?int $selectedUserId = null;
 
     public string $studentSearch = '';
@@ -44,6 +50,8 @@ class Desk extends Component
     public ?int $selectedReservationId = null;
 
     public ?int $selectedItemId = null;
+
+    public string $itemSearch = '';
 
     public ?int $selectedUnitId = null;
 
@@ -96,9 +104,82 @@ class Desk extends Component
         $this->mode = in_array($mode, ['checkout', 'checkin'], true) ? $mode : 'checkout';
     }
 
+    public function setCheckoutSource(string $source): void
+    {
+        $this->checkoutSource = in_array($source, ['walkin', 'reservation'], true) ? $source : 'walkin';
+
+        if ($this->checkoutSource === 'walkin') {
+            $this->selectedReservationId = null;
+            $this->reservationModal      = false;
+        } elseif (! $this->selectedReservationId) {
+            $this->reservationModal = true;
+        }
+    }
+
+    public function openReservationModal(): void
+    {
+        $this->reservationModal = true;
+    }
+
+    public function clearSelectedStudent(): void
+    {
+        $this->selectedUserId = null;
+        $this->studentSearch  = '';
+    }
+
     public function updatedSelectedItemId(): void
     {
         $this->selectedUnitId = null;
+        $this->unitSearch     = '';
+    }
+
+    public function selectItem(int $itemId): void
+    {
+        $orgId = $this->getEffectiveOrganizationId();
+        $item  = Item::query()
+            ->where('is_active', true)
+            ->when($orgId !== null, fn (Builder $q) => $q->where('organization_id', $orgId))
+            ->findOrFail($itemId);
+
+        $this->selectedItemId = $item->id;
+        $this->itemSearch     = $item->name;
+        $this->selectedUnitId = null;
+        $this->unitSearch     = '';
+    }
+
+    public function clearSelectedItem(): void
+    {
+        $this->selectedItemId = null;
+        $this->itemSearch     = '';
+        $this->selectedUnitId = null;
+        $this->unitSearch     = '';
+    }
+
+    public function selectUnit(int $unitId): void
+    {
+        $orgId = $this->getEffectiveOrganizationId();
+        $unit  = ItemUnit::query()
+            ->with('item')
+            ->when($orgId !== null, fn (Builder $q) => $q->where('organization_id', $orgId))
+            ->findOrFail($unitId);
+
+        if ($unit->status !== ItemUnitStatus::Available && $unit->status !== ItemUnitStatus::Reserved) {
+            $this->error("Unit {$unit->asset_tag} is currently {$unit->status->label()} and cannot be checked out.");
+
+            return;
+        }
+
+        $this->selectedItemId    = $unit->item_id;
+        $this->itemSearch        = $unit->item->name ?? '';
+        $this->selectedUnitId    = $unit->id;
+        $this->unitSearch        = $unit->asset_tag;
+        $this->checkoutCondition = $unit->condition->value;
+    }
+
+    public function clearSelectedUnit(): void
+    {
+        $this->selectedUnitId = null;
+        $this->unitSearch     = '';
     }
 
     public function updatedUnitSearch(): void
@@ -124,7 +205,9 @@ class Desk extends Component
                 $this->error("Unit {$unit->asset_tag} is currently {$unit->status->label()} and cannot be checked out.");
             } else {
                 $this->selectedItemId    = $unit->item_id;
+                $this->itemSearch        = $unit->item->name ?? '';
                 $this->selectedUnitId    = $unit->id;
+                $this->unitSearch        = $unit->asset_tag;
                 $this->checkoutCondition = $unit->condition->value;
                 $this->info("Unit {$unit->asset_tag} ({$unit->item->name}) selected.");
             }
@@ -152,9 +235,11 @@ class Desk extends Component
         if ($approvedRes) {
             $this->selectedReservationId = $approvedRes->id;
             $this->selectedItemId        = $approvedRes->item_id;
+            $this->itemSearch            = $approvedRes->item?->name ?? '';
 
             if ($approvedRes->item_unit_id) {
                 $this->selectedUnitId = $approvedRes->item_unit_id;
+                $this->unitSearch     = $approvedRes->itemUnit?->asset_tag ?? '';
             }
 
             $this->info("Found approved reservation #{$approvedRes->id} for {$approvedRes->item->name}. Form pre-populated.");
@@ -163,15 +248,19 @@ class Desk extends Component
 
     public function applyReservation(int $reservationId): void
     {
-        $res = Reservation::with(['item', 'itemUnit'])->findOrFail($reservationId);
+        $res = Reservation::with(['user', 'item', 'itemUnit'])->findOrFail($reservationId);
 
+        $this->checkoutSource        = 'reservation';
         $this->selectedReservationId = $res->id;
         $this->selectedUserId        = $res->user_id;
         $this->studentSearch         = $res->user->name;
         $this->selectedItemId        = $res->item_id;
+        $this->itemSearch            = $res->item?->name ?? '';
+        $this->reservationModal      = false;
 
         if ($res->item_unit_id) {
             $this->selectedUnitId    = $res->item_unit_id;
+            $this->unitSearch        = $res->itemUnit?->asset_tag ?? '';
             $this->checkoutCondition = $res->itemUnit?->condition->value ?? 'good';
         }
 
@@ -185,6 +274,7 @@ class Desk extends Component
     public function clearReservation(): void
     {
         $this->selectedReservationId = null;
+        $this->checkoutSource        = 'walkin';
     }
 
     public function setDueDays(int $days): void
@@ -256,11 +346,14 @@ class Desk extends Component
                 'selectedUserId',
                 'studentSearch',
                 'selectedReservationId',
+                'reservationSearch',
                 'selectedItemId',
+                'itemSearch',
                 'selectedUnitId',
                 'unitSearch',
                 'checkoutNotes',
             ]);
+            $this->checkoutSource    = 'walkin';
             $this->dueAt             = now()->addDay()->setTime(17, 0)->format('Y-m-d\TH:i');
             $this->checkoutCondition = 'good';
         } catch (DomainException $e) {
@@ -376,7 +469,7 @@ class Desk extends Component
             return null;
         }
 
-        return User::find($this->selectedUserId);
+        return User::with('organizations')->find($this->selectedUserId);
     }
 
     #[Computed]
@@ -388,46 +481,147 @@ class Desk extends Component
     #[Computed]
     public function students(): Collection
     {
-        $orgId         = $this->getEffectiveOrganizationId();
+        $search = mb_trim($this->studentSearch);
+
+        if (mb_strlen($search) < 2) {
+            return new Collection();
+        }
+
         $hasMemberRole = \Spatie\Permission\Models\Role::where('name', 'member')->where('guard_name', 'web')->exists();
+        $term          = '%'.$search.'%';
 
         return User::query()
+            ->with('organizations')
             ->when($hasMemberRole, fn (Builder $q) => $q->role('member'))
-            ->when($orgId !== null, function (Builder $q) use ($orgId): void {
-                $q->whereHas('organizations', fn (Builder $orgQ) => $orgQ->where('organizations.id', $orgId));
-            })
-            ->when(! empty($this->studentSearch), function (Builder $q): void {
-                $term = '%'.mb_trim($this->studentSearch).'%';
-                $q->where(fn ($sub) => $sub->where('name', 'like', $term)->orWhere('email', 'like', $term));
-            })
+            ->where(fn (Builder $sub) => $sub->where('name', 'like', $term)->orWhere('email', 'like', $term))
+            ->orderBy('name')
             ->limit(10)
+            ->get();
+    }
+
+    #[Computed]
+    public function approvedReservationsCount(): int
+    {
+        $orgId = $this->getEffectiveOrganizationId();
+
+        return Reservation::query()
+            ->where('status', ReservationStatus::Approved)
+            ->when($orgId !== null, fn (Builder $q) => $q->where('organization_id', $orgId))
+            ->count();
+    }
+
+    #[Computed]
+    public function approvedReservations(): Collection
+    {
+        $orgId  = $this->getEffectiveOrganizationId();
+        $search = mb_trim($this->reservationSearch);
+
+        return Reservation::query()
+            ->with(['user.organizations', 'item', 'itemUnit'])
+            ->where('status', ReservationStatus::Approved)
+            ->when($orgId !== null, fn (Builder $q) => $q->where('organization_id', $orgId))
+            ->when($search !== '', function (Builder $q) use ($search): void {
+                $cleanId = mb_ltrim($search, '#');
+                $term    = '%'.$search.'%';
+
+                $q->where(function (Builder $sub) use ($term, $cleanId): void {
+                    if (ctype_digit($cleanId)) {
+                        $sub->orWhere('id', (int) $cleanId);
+                    }
+
+                    $sub->orWhereHas('user', fn (Builder $u) => $u->where('name', 'like', $term)->orWhere('email', 'like', $term))
+                        ->orWhereHas('item', fn (Builder $i) => $i->where('name', 'like', $term))
+                        ->orWhereHas('itemUnit', fn (Builder $unit) => $unit->where('asset_tag', 'like', $term));
+                });
+            })
+            ->orderBy('start_time')
+            ->limit(20)
             ->get();
     }
 
     #[Computed]
     public function pendingApprovedReservations(): Collection
     {
-        $orgId = $this->getEffectiveOrganizationId();
-
-        return Reservation::query()
-            ->with(['user', 'item', 'itemUnit'])
-            ->where('status', ReservationStatus::Approved)
-            ->when($orgId !== null, fn (Builder $q) => $q->where('organization_id', $orgId))
-            ->orderBy('start_time')
-            ->limit(5)
-            ->get();
+        return $this->approvedReservations;
     }
 
     #[Computed]
     public function items(): Collection
     {
+        $search = mb_trim($this->itemSearch);
+
+        if (mb_strlen($search) < 2) {
+            return new Collection();
+        }
+
         $orgId = $this->getEffectiveOrganizationId();
+        $term  = '%'.$search.'%';
 
         return Item::query()
+            ->with('organization')
+            ->withCount([
+                'units as available_units_count' => fn (Builder $q) => $q->whereIn('status', [ItemUnitStatus::Available, ItemUnitStatus::Reserved]),
+            ])
             ->where('is_active', true)
             ->when($orgId !== null, fn (Builder $q) => $q->where('organization_id', $orgId))
+            ->where(function (Builder $sub) use ($term): void {
+                $sub->where('name', 'like', $term)
+                    ->orWhere('brand', 'like', $term)
+                    ->orWhere('model_number', 'like', $term);
+            })
             ->orderBy('name')
+            ->limit(10)
             ->get();
+    }
+
+    #[Computed]
+    public function selectedItem(): ?Item
+    {
+        if (! $this->selectedItemId) {
+            return null;
+        }
+
+        return Item::with(['organization', 'category'])
+            ->withCount([
+                'units as available_units_count' => fn (Builder $q) => $q->whereIn('status', [ItemUnitStatus::Available, ItemUnitStatus::Reserved]),
+            ])
+            ->find($this->selectedItemId);
+    }
+
+    #[Computed]
+    public function matchingUnits(): Collection
+    {
+        $search = mb_trim($this->unitSearch);
+
+        if (mb_strlen($search) < 2) {
+            return new Collection();
+        }
+
+        $orgId = $this->getEffectiveOrganizationId();
+        $term  = '%'.$search.'%';
+
+        return ItemUnit::query()
+            ->with(['item', 'organization'])
+            ->when($orgId !== null, fn (Builder $q) => $q->where('organization_id', $orgId))
+            ->when($this->selectedItemId, fn (Builder $q) => $q->where('item_id', $this->selectedItemId))
+            ->whereIn('status', [ItemUnitStatus::Available, ItemUnitStatus::Reserved])
+            ->where(function (Builder $sub) use ($term): void {
+                $sub->where('asset_tag', 'like', $term)
+                    ->orWhere('serial_number', 'like', $term);
+            })
+            ->orderBy('asset_tag')
+            ->limit(10)
+            ->get();
+    }
+
+    #[Computed]
+    public function selectedUnit(): ?ItemUnit
+    {
+        if (! $this->selectedUnitId) {
+            return null;
+        }
+
+        return ItemUnit::with(['item', 'organization'])->find($this->selectedUnitId);
     }
 
     #[Computed]
