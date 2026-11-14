@@ -14,7 +14,7 @@
                             @endforeach
                         </select>
                     @else
-                        <span class="badge badge-neutral badge-sm font-semibold gap-1">
+                        <span class="inline-flex items-center gap-1 text-xs font-semibold text-base-content/80 bg-base-200 border border-base-300 px-2.5 py-1 rounded-md whitespace-nowrap">
                             <x-heroicon-o-academic-cap class="w-3.5 h-3.5" />
                             {{ auth()->user()?->organization?->code ?? 'Hub' }}
                         </span>
@@ -157,7 +157,7 @@
                                             </p>
                                         </div>
                                         <div class="text-right shrink-0">
-                                            <span class="badge badge-xs {{ $loan->isOverdue() ? 'badge-error' : 'badge-info' }}">
+                                            <span class="badge badge-xs whitespace-nowrap {{ $loan->isOverdue() ? 'badge-error' : 'badge-info' }}">
                                                 {{ $loan->isOverdue() ? __('Overdue') : __('Active') }}
                                             </span>
                                             <p class="text-[11px] text-base-content/70 mt-0.5">
@@ -193,7 +193,7 @@
                                                 {{ $reservation->organization?->code }} • {{ $reservation->start_time?->format('M d, g:i A') }}
                                             </p>
                                         </div>
-                                        <span class="badge badge-xs {{ $reservation->status->badgeClass() }} shrink-0">
+                                        <span class="badge badge-xs whitespace-nowrap {{ $reservation->status->badgeClass() }} shrink-0">
                                             {{ $reservation->status->label() }}
                                         </span>
                                     </div>
@@ -320,7 +320,7 @@
                                                 {{ $req->organization?->code }} • {{ $req->start_time?->format('M d, g:i A') }}
                                             </p>
                                         </div>
-                                        <span class="badge badge-warning badge-xs shrink-0">{{ __('Pending') }}</span>
+                                        <span class="badge badge-warning badge-xs shrink-0 whitespace-nowrap">{{ __('Pending') }}</span>
                                     </div>
                                 @endforeach
                             </div>
@@ -351,7 +351,7 @@
                                             </p>
                                         </div>
                                         <div class="text-right shrink-0">
-                                            <span class="badge badge-xs {{ $loan->isOverdue() ? 'badge-error' : 'badge-warning' }}">
+                                            <span class="badge badge-xs whitespace-nowrap {{ $loan->isOverdue() ? 'badge-error' : 'badge-warning' }}">
                                                 {{ $loan->isOverdue() ? __('Overdue') : __('Due Today') }}
                                             </span>
                                             <p class="text-[11px] text-base-content/70 mt-0.5">
@@ -391,7 +391,7 @@
                                     @foreach ($this->collegeSnapshot as $row)
                                         <tr wire:key="college-snap-{{ $row['id'] }}">
                                             <td>
-                                                <span class="badge badge-neutral badge-xs font-bold mr-1.5">{{ $row['code'] }}</span>
+                                                <span class="text-[11px] font-mono font-bold text-base-content/75 bg-base-200 px-1.5 py-0.5 rounded mr-1.5 whitespace-nowrap">{{ $row['code'] }}</span>
                                                 <span class="text-xs font-medium">{{ $row['name'] }}</span>
                                             </td>
                                             <td class="text-right tabular-nums text-xs">
