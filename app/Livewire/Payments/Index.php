@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire\Payments;
 
+use App\Models\Loan;
 use DomainException;
 use App\Models\Payment;
 use App\Models\Penalty;
@@ -15,6 +16,7 @@ use App\Models\PaymentMethod;
 use InvalidArgumentException;
 use App\Livewire\Traits\Alert;
 use Livewire\Attributes\Computed;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use App\Models\OrganizationPaymentMethod;
@@ -52,6 +54,13 @@ class Index extends Component
     public bool $receiptModal = false;
 
     public ?int $viewingPaymentId = null;
+
+    public string $rejectReason = '';
+
+    // View Loan Details Modal
+    public bool $loanModal = false;
+
+    public ?int $viewingLoanId = null;
 
     public function mount(): void
     {
@@ -145,8 +154,16 @@ class Index extends Component
                 ->where('payment_method_id', $method->id)
                 ->first();
 
+        $fullAmount = round((float) $penalty->balance_remaining, 2);
+
+        if (abs((float) $this->amountPaid - $fullAmount) >= 0.01) {
+            $this->addError('amountPaid', 'Partial payments are not allowed. Full penalty balance (₱'.number_format($fullAmount, 2).') is required.');
+
+            return;
+        }
+
         try {
-            $payment = $penalty->recordPayment((float) $this->amountPaid, [
+            $payment = $penalty->recordPayment($fullAmount, [
                 'payment_method_id'              => $method->id,
                 'organization_payment_method_id' => $orgPaymentMethod?->id,
                 'reference_number'               => ! empty($this->referenceNumber) ? mb_trim($this->referenceNumber) : null,
@@ -172,7 +189,58 @@ class Index extends Component
         }
 
         $this->viewingPaymentId = $payment->id;
+        $this->rejectReason     = '';
         $this->receiptModal     = true;
+    }
+
+    public function confirmPayment(int $paymentId): void
+    {
+        $payment = Payment::findOrFail($paymentId);
+        $user    = Auth::user();
+
+        if ($user && ! $user->hasRole('superadmin') && $user->organization && $payment->organization_id !== $user->organization->id) {
+            abort(403, 'You are not authorized to verify payments from another college.');
+        }
+
+        try {
+            $verifiedCount = 0;
+
+            DB::transaction(function () use ($payment, $user, &$verifiedCount): void {
+                foreach ($payment->siblingPendingPayments() as $pending) {
+                    $pending->verify((int) $user->id);
+                    $verifiedCount++;
+                }
+            });
+
+            $this->receiptModal = false;
+            $this->success("Payment confirmed! {$verifiedCount} ".($verifiedCount === 1 ? 'penalty has' : 'penalties have').' been marked as paid.');
+        } catch (DomainException $e) {
+            $this->error($e->getMessage());
+        }
+    }
+
+    public function rejectPayment(int $paymentId): void
+    {
+        $payment = Payment::findOrFail($paymentId);
+        $user    = Auth::user();
+
+        if ($user && ! $user->hasRole('superadmin') && $user->organization && $payment->organization_id !== $user->organization->id) {
+            abort(403, 'You are not authorized to reject payments from another college.');
+        }
+
+        try {
+            DB::transaction(function () use ($payment, $user): void {
+                foreach ($payment->siblingPendingPayments() as $pending) {
+                    $pending->reject((int) $user->id, $this->rejectReason);
+                }
+            });
+
+            $this->receiptModal = false;
+            $this->rejectReason = '';
+            $this->warning('Payment receipt rejected. The penalty remains unpaid.');
+        } catch (DomainException $e) {
+            $this->error($e->getMessage());
+        }
     }
 
     #[Computed]
@@ -184,6 +252,30 @@ class Index extends Component
 
         return Payment::with(['organization', 'penalty.itemUnit.item', 'user', 'receivedBy', 'paymentMethod'])
             ->find($this->viewingPaymentId);
+    }
+
+    public function openLoanModal(int $loanId): void
+    {
+        $loan = Loan::findOrFail($loanId);
+        $user = Auth::user();
+
+        if ($user && ! $user->hasRole('superadmin') && $user->organization && $loan->organization_id !== $user->organization->id) {
+            abort(403, 'You are not authorized to view loans from another college.');
+        }
+
+        $this->viewingLoanId = $loan->id;
+        $this->loanModal     = true;
+    }
+
+    #[Computed]
+    public function viewingLoan(): ?Loan
+    {
+        if (! $this->viewingLoanId) {
+            return null;
+        }
+
+        return Loan::with(['organization', 'user', 'item', 'itemUnit', 'issuedBy', 'receivedBy'])
+            ->find($this->viewingLoanId);
     }
 
     #[Computed]
@@ -218,16 +310,23 @@ class Index extends Component
         $orgId = $this->getEffectiveOrganizationId();
 
         return Payment::query()
-            ->with(['organization', 'penalty', 'user', 'receivedBy', 'paymentMethod'])
+            ->with(['organization', 'penalty.loan.item', 'user', 'receivedBy', 'paymentMethod'])
             ->when($orgId !== null, fn (Builder $q) => $q->where('organization_id', $orgId))
             ->when($this->methodFilter !== 'all', fn (Builder $q) => $q->where('payment_method_id', (int) $this->methodFilter))
             ->when($this->statusFilter !== 'all', fn (Builder $q) => $q->where('status', $this->statusFilter))
             ->when(! empty($this->search), function (Builder $q): void {
-                $term = '%'.mb_trim($this->search).'%';
-                $q->where(function (Builder $sub) use ($term): void {
+                $raw     = mb_trim($this->search);
+                $cleanId = mb_ltrim($raw, '#');
+                $term    = '%'.$raw.'%';
+
+                $q->where(function (Builder $sub) use ($term, $cleanId): void {
                     $sub->where('receipt_number', 'like', $term)
                         ->orWhere('reference_number', 'like', $term)
                         ->orWhereHas('user', fn (Builder $u) => $u->where('name', 'like', $term)->orWhere('email', 'like', $term));
+
+                    if (ctype_digit($cleanId)) {
+                        $sub->orWhereHas('penalty', fn (Builder $p) => $p->where('loan_id', (int) $cleanId));
+                    }
                 });
             })
             ->latest('paid_at')
