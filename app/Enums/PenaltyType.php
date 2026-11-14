@@ -36,4 +36,16 @@ enum PenaltyType: string
             self::Other   => 'badge-neutral',
         };
     }
+
+    /**
+     * Get the semantic text color class for this penalty type.
+     */
+    public function textClass(): string
+    {
+        return match ($this) {
+            self::Overdue            => 'text-warning',
+            self::Damage, self::Loss => 'text-error',
+            self::Other              => 'text-base-content/70',
+        };
+    }
 }
