@@ -13,7 +13,7 @@
                         @endforeach
                     </select>
                 @else
-                    <span class="badge badge-neutral badge-sm font-semibold gap-1">
+                    <span class="inline-flex items-center gap-1 text-xs font-semibold text-base-content/80 bg-base-200 border border-base-300 px-2.5 py-1 rounded-md whitespace-nowrap">
                         <x-heroicon-o-academic-cap class="w-3.5 h-3.5" />
                         {{ auth()->user()?->organization?->code ?? 'Hub' }}
                     </span>
@@ -84,7 +84,7 @@
                                             <span>{{ $loan->user->name }}</span>
                                         </div>
                                         <div class="text-base-content/60 text-[11px]">{{ $loan->user->email }}</div>
-                                        <span class="badge badge-ghost badge-xs">{{ $loan->organization->code }}</span>
+                                        <span class="text-[11px] font-mono font-semibold text-base-content/75 bg-base-200 px-1.5 py-0.5 rounded whitespace-nowrap">{{ $loan->organization->code }}</span>
                                     </div>
                                 </td>
                                 <td>
@@ -112,24 +112,24 @@
                                     <div class="space-y-1">
                                         <span class="text-base-content font-medium block">{{ $loan->due_at->format('M d, Y H:i') }}</span>
                                         @if ($loan->isOverdue())
-                                            <span class="badge badge-xs badge-error font-bold gap-1 animate-pulse">
+                                            <span class="badge badge-xs badge-error font-bold gap-1 animate-pulse whitespace-nowrap">
                                                 <x-heroicon-o-exclamation-triangle class="w-3 h-3" />
                                                 {{ __('Overdue by :time', ['time' => $loan->due_at->diffForHumans(now(), true)]) }}
                                             </span>
                                         @elseif ($loan->due_at->isToday())
-                                            <span class="badge badge-xs badge-warning font-bold gap-1">
+                                            <span class="badge badge-xs badge-warning font-bold gap-1 whitespace-nowrap">
                                                 <x-heroicon-o-clock class="w-3 h-3" />
                                                 {{ __('Due Today in :time', ['time' => $loan->due_at->diffForHumans(now(), true)]) }}
                                             </span>
                                         @else
-                                            <span class="badge badge-xs badge-info font-medium">
+                                            <span class="badge badge-xs badge-info font-medium whitespace-nowrap">
                                                 {{ __('Due in :time', ['time' => now()->diffForHumans($loan->due_at, true)]) }}
                                             </span>
                                         @endif
                                     </div>
                                 </td>
                                 <td>
-                                    <span class="badge badge-xs {{ $loan->checkout_condition->badgeClass() }}">
+                                    <span class="text-xs font-semibold whitespace-nowrap {{ $loan->checkout_condition->textClass() }}">
                                         {{ $loan->checkout_condition->label() }}
                                     </span>
                                 </td>
