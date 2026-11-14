@@ -141,3 +141,29 @@ it('allows superadmin to switch and manage any organization', function () {
 
     expect($anotherOrg->fresh()->name)->toBe('Iloilo City Central');
 });
+
+it('always keeps cash enabled without requiring account name or numbers', function () {
+    $cash = PaymentMethod::firstOrCreate(
+        ['payment_code' => 'cash'],
+        ['name' => 'Cash', 'is_active' => true]
+    );
+
+    Auth::login($this->manager);
+
+    Livewire::test(Settings::class)
+        ->assertSet("paymentConfigs.{$cash->id}.is_enabled", true)
+        ->set("paymentConfigs.{$cash->id}.is_enabled", false)
+        ->set("paymentConfigs.{$cash->id}.account_name", '')
+        ->set("paymentConfigs.{$cash->id}.account_numbers", [''])
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $config = $this->organization->fresh()->organizationPaymentMethods()
+        ->where('payment_method_id', $cash->id)
+        ->first();
+
+    expect($config)->not->toBeNull()
+        ->and($config->is_enabled)->toBeTrue()
+        ->and($config->account_name)->toBe('')
+        ->and($config->account_numbers)->toEqual([]);
+});
